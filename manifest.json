@@ -1,0 +1,43 @@
+{
+  "id": "net.yexe.myspoti.youtubemusic",
+  "name": "YouTube Music Download Helper",
+  "version": "1.0",
+  "versionCode": 7,
+  "author": "y-exe",
+  "description": "Matches a track's title, artist and length against YouTube Music's official catalog — searching in the song's own script — and saves its original AAC/M4A audio.",
+  "homepage": "https://github.com/y-exe/myspoti-youtube-music",
+  "category": "downloads",
+  "tags": [
+    "youtube-music",
+    "downloads",
+    "multilingual"
+  ],
+  "minAppVersion": "2.0.2-beta.4",
+  "changelog": "1.0: Matching searches in the song's own script — Korean, Chinese, Russian, Greek, Hebrew, Arabic, Hindi, Thai — then English, with region-aware ranking.",
+  "actions": [
+    {
+      "name": "download.source",
+      "why": "Find download audio among YouTube Music's official songs"
+    },
+    {
+      "name": "network",
+      "hosts": [
+        "music.youtube.com",
+        "youtubei.googleapis.com",
+        "*.googlevideo.com"
+      ],
+      "why": "Search songs, get audio URLs, check them"
+    }
+  ],
+  "translations": {
+    "ja": {
+      "name": "YouTube Music ダウンロード補助ツール",
+      "description": "曲名・アーティスト・長さを照合し、YouTube Musicの公式楽曲をAACで保存します。曲の表記言語(日本語・韓国語・中国語・ロシア語など)に沿って検索します。",
+      "changelog": "1.0: 曲の表記言語(韓国語・中国語・ロシア語・ギリシャ語・ヘブライ語・アラビア語・ヒンディー語・タイ語)に沿った検索と、地域に合わせたランキング参照に対応。",
+      "actions": {
+        "download.source": "YouTube Musicの公式楽曲からダウンロード音源を探す",
+        "network": "楽曲の検索、音源URLの取得、有効性の確認"
+      }
+    }
+  }
+}

@@ -1,0 +1,5 @@
+extension.zip
+*.zip
+*.patched.js
+__pycache__/
+.DS_Store

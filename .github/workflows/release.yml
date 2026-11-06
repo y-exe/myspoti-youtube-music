@@ -1,0 +1,58 @@
+name: Extension
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: extension
+      - uses: actions/checkout@v7
+        with:
+          repository: kota-zo/myspoti
+          ref: 5b8754d5eeeb5755aa7095744239910ffc2de8db
+          path: sdk
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Check with upstream SDK
+        working-directory: sdk/base
+        run: |
+          ./gradlew :extensions-cli:run --args="check $GITHUB_WORKSPACE/extension"
+          ./gradlew :extensions-cli:run --args="run $GITHUB_WORKSPACE/extension download-source --title MissingMetadata"
+      - name: Build standard package
+        run: node extension/scripts/pack.js extension.zip
+      - uses: actions/upload-artifact@v7
+        with:
+          name: extension
+          path: extension.zip
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: The tag matches manifest.json
+        run: |
+          node -e "const manifest = require('./manifest.json'); if ('v' + manifest.version !== process.env.GITHUB_REF_NAME) process.exit(1);"
+      - uses: actions/download-artifact@v8
+        with:
+          name: extension
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" extension.zip --title "$GITHUB_REF_NAME" --notes-file README.md --verify-tag --latest
