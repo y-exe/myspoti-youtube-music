@@ -70,11 +70,14 @@ function main() {
     if (manifest.icon) names.push(manifest.icon);
     names.push(...KEPT.filter(n => fs.existsSync(path.join(ROOT, n))));
     const seen = new Set();
-    const read = name => fs.readFileSync(path.join(ROOT, name));
-    const zip = pack(names.filter(n => !seen.has(n) && seen.add(n)), name => {
+    const read = name => {
         if (!fs.existsSync(path.join(ROOT, name))) { console.error(name + ' is missing'); process.exit(1); }
-        return read(name);
-    });
+        const data = fs.readFileSync(path.join(ROOT, name));
+        // Text members are stored with LF endings, so a Windows checkout packs the
+        // same bytes as CI's Linux one.
+        return name.endsWith('.png') ? data : Buffer.from(data.toString('utf8').replace(/\r\n/g, '\n'), 'utf8');
+    };
+    const zip = pack(names.filter(n => !seen.has(n) && seen.add(n)), read);
     fs.writeFileSync(outPath, zip);
     console.log(outPath + '  ' + seen.size + ' files  sha256 ' + crypto.createHash('sha256').update(zip).digest('hex'));
 }
