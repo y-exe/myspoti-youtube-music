@@ -1,69 +1,62 @@
-# YouTube Music Download Helper for Myspoti
+<div align="center">
 
-[![License GPL v3](https://img.shields.io/badge/LICENSE-GPL%20v3-green.svg?style=flat-square)](LICENSE)
-[![Myspoti](https://img.shields.io/badge/Myspoti-2.0.2%2B-blue.svg?style=flat-square)](https://github.com/kota-zo/myspoti)
+<h1>YouTube Music Download Helper</h1>
 
-An independent [`download-source`](https://github.com/kota-zo/myspoti/blob/main/docs/extensions/API.md) extension for [Myspoti](https://github.com/kota-zo/myspoti). It matches a track's title, artist and length against **YouTube Music's official catalog**, searching in the song's own script and ranking region, and hands the original AAC/M4A to Myspoti, which downloads, stores and plays it. No Myspoti fork needed and no external resolver service.
+[![License GPL v3](https://img.shields.io/badge/License-GPL--3.0-green?style=flat-square)](LICENSE)
+[![Myspoti](https://img.shields.io/badge/Myspoti-2.0.2%2B-blue?style=flat-square)](https://github.com/kota-zo/myspoti)
+[![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black)](main.js)
+[![Category](https://img.shields.io/badge/store-downloads-0e7690?style=flat-square)](https://github.com/kota-zo/myspoti)
 
-日本語での説明は末尾の[日本語](#ja)を参照してください。
+Finds a song's official master on YouTube Music and hands the original AAC/M4A to
+[Myspoti](https://github.com/kota-zo/myspoti), which downloads, stores and plays it.
+No Myspoti fork, no resolver service, nothing running outside Myspoti.
 
-## Status
+English · [日本語](README.ja.md)
 
-Working on Android (Myspoti beta 2.0.2-beta.8 + stable 2.4.0). Verified with real tracks on the device CLI and a Node harness replaying the same search and matching:
-
-- Multilingual corpus (Korean hangul/latin, Chinese simplified/traditional, Russian, Thai, Japanese, Spanish): all 8 saved.
-- 13-track Japanese corpus: 12/13 saved (the one miss is a real catalog difference — the official master runs 25 s longer than Spotify's metadata, so the app's length check refuses it).
-- Batch of 10 sequential saves at once: fine, no rate-limit refusals.
-
-Not a lossless filler or a note-perfect recording matcher like my [Myspoti fork](https://github.com/y-exe/myspoti), which stays available for comparison. Failure cases on both: titles that only ever appear translated or romanized, versions whose YouTube master length drifts too far, and songs lost in cover-storm rankings.
-
-## Install
-
-- **Store**: the repo is found by Myspoti's store via the `myspoti-extension` topic — nothing to submit.
-- **From an address**: Settings → Extensions → Install → *Install from an address*: `https://github.com/y-exe/myspoti-youtube-music`.
-- **From a file**: grab `extension.zip` from the [latest release](https://github.com/y-exe/myspoti-youtube-music/releases/latest) (or build it with `node scripts/pack.js extension.zip`), push it to the phone and choose *Install from a file*.
-
-Requires Myspoti 2.0.2-beta.4 or newer. All downloading, storage and encryption stay inside Myspoti — the extension only proposes files.
+</div>
 
 ## What it does
 
-- Searches ISRC, title + artist, title (feat-stripped, punctuation-stripped). Every query first runs in the song's own language ranking — detected from its script: Japanese, Korean, Simplified/Traditional Chinese, Russian, Greek, Hebrew, Arabic, Hindi or Thai — with English as the fallback, then re-searches a second pass when neither hit. A single track is answered within its 25 s budget.
-- Matching follows the fork's criteria: title similarity ≥ 0.85 (looser for Chinese, whose simplified and traditional glyphs drift between stores), artist equal or contained (≥ 4 chars), and a length window of −5 s / +15 s (the same window the app's own download check uses); the best score wins. ATV-classified (official) songs only; live/cover/remix/karaoke wordings across those languages are refused.
-- Full-width/half-width, case, punctuation and CV-actor suffixes in artist names are normalized away.
-- Picks the highest-bitrate available AAC and verifies head and tail ranges answer before returning an M4A. No transcoding, no fake quality, WebM/Opus is never offered.
-- `status` keeps the extension's presence honest (Inactive on unreachable YouTube Music).
-- **Request self-governance**: the app caps each extension at 120 requests/minute, which batch downloads used to burst through. The extension keeps its own ledger, self-limits at 90 and waits inside the hook budget; when the budget is short it reports "rate limited" so the app can retry later instead of mislabelling the song *not found*.
+- **Official masters only.** Answers Myspoti's `download-source` hook with songs the YouTube Music catalog classifies as ATV (artist uploads). Ordinary videos, official-MV-only uploads and every non-ATV result are refused. The stream is the original AAC/M4A at the highest available bitrate — head and tail ranges are probed before it is offered, WebM/Opus is never offered, nothing is transcoded or re-labeled.
+- **Multilingual search.** The song's writing system picks the search language and region, with English as fallback: kana → `ja` (JP), hangul → `ko` (KR), han → `zh-TW` (TW) then `zh-CN` (US), Cyrillic → `ru`, Greek → `el`, Hebrew → `he`, Arabic → `ar`, Devanagari → `hi`, Thai → `th`, Latin → `en`. Cover/live/remix/karaoke wording is refused in every one of those languages, and Chinese matching tolerates the simplified/traditional glyph drift between stores.
+- **Strict matching.** ISRC is tried first when the track has one, then title + artist queries (feat stripped, punctuation normalized, CV-actor suffixes removed). A candidate must pass title similarity ≥ 0.85, artist equality or containment (≥ 4 chars), and the same length window Myspoti's own download check uses (−5 s / +15 s); the best score wins. When the rankings hide the official song, a second pass re-searches everything. One track is answered within its 25 s hook budget.
+- **Rate-limit aware.** Myspoti caps each extension at 120 requests/minute, which batch downloads used to burst through. The extension keeps its own ledger, self-limits at 90, waits inside the hook budget, and reports "rate limited" instead of mislabeling the song *not found* — so the app can retry later.
+- **Honest status.** The `status` hook answers with a cheap probe and shows the extension as inactive when YouTube Music is unreachable. The probe is skipped while the rate ledger is hot, so it never eats a download's quota.
+- **Verified.** A Node harness replaying the same search and matching saved 8/8 tracks across Korean (hangul and latin), Chinese (simplified and traditional input), Russian, Thai, Japanese and Spanish, and 12/13 on a Japanese corpus (the one miss is a real catalog difference — the official master runs 25 s longer than Spotify's metadata). Details in [docs/verification.md](docs/verification.md).
+
+## Install
+
+1. **Store**: open Myspoti's extension store and look for *YouTube Music Download Helper* (this repo, via the `myspoti-extension` topic).
+2. **From an address**: Settings → Extensions → Install → *Install from an address* → `https://github.com/y-exe/myspoti-youtube-music`.
+3. **From a file**: grab `extension.zip` from the [latest release](https://github.com/y-exe/myspoti-youtube-music/releases/latest) (or build it with `node scripts/pack.js`), push it to the phone, and choose *Install from a file*.
+
+Requires Myspoti 2.0.2-beta.4 or newer. All downloading, storage and encryption stay inside Myspoti — the extension only proposes files.
 
 ## Limits
 
-- `download.source` is exclusive in Myspoti: while this extension is on, it owns downloads — a SpotiFLAC-style lossless source cannot share the duty.
-- No audio decoding or audio-alignment (fork features): `isrcMatched` is always false; ISRC search is not proof of an identical recording.
-- Official MVs, ordinary uploads and every non-ATV result are refused; Spotify audio is never touched.
-- Streams YouTube asks to log in, sign or DRM for are out of scope. No cookies or account tokens; anonymous visitor data is borrowed from the public API for the duration of one request.
-- A metadata match is not a proven recording match. Stop using the extension and report if the wrong take is ever saved.
+- `download.source` is exclusive in Myspoti: while this extension is on, it owns downloads — a lossless source cannot share the duty.
+- Streams behind DRM, login or signing are skipped, not bypassed. No cookies, no account tokens; an anonymous visitor id is borrowed from the public API for the duration of one request.
+- `isrcMatched` is always false: an ISRC hit is not proof of an identical recording. A metadata match is not a proven recording match — stop using the extension and report if the wrong take is ever saved.
+- Titles that only ever appear translated or romanized, masters whose length drifts too far, and songs lost in cover-storm rankings are not found.
 
 ## Development
 
-Layout and `scripts/pack.js` follow [kota-zo/myspoti-extension-template](https://github.com/kota-zo/myspoti-extension-template). CI runs the official SDK `check` plus a hook-backed Rhino smoke test; pushing a tag `vX.Y.Z` matching the manifest releases `extension.zip`. Everything in this repository is JavaScript (Node for packaging, no Python). Files: [`main.js`](main.js) (all logic), [`docs/rhino-compatibility.md`](docs/rhino-compatibility.md) (what Rhino offered), [`docs/full-download-verification.md`](docs/full-download-verification.md) (how the full-length fetch was proven).
+Plain JavaScript for Rhino (no build step for the extension itself). Package it with Node:
+
+```powershell
+node scripts/pack.js          # → extension.zip (deterministic bytes, LF-normalized)
+```
+
+CI runs the official SDK `check` plus a smoke test, and a pushed `vX.Y.Z` tag matching `manifest.json` becomes a release with `extension.zip`. Layout follows [kota-zo/myspoti-extension-template](https://github.com/kota-zo/myspoti-extension-template).
+
+More: [docs/README.md](docs/README.md) — how matching works, the full-length fetch proof, the Rhino library survey, and device verification.
 
 ## Sources and licensing
 
-Audio comes exclusively from YouTube Music's official catalog (ATV-classified songs), fetched through the same public `youtubei` endpoints the YouTube Music web player uses, with anonymous visitor data. Nothing is decrypted: streams served with DRM are skipped, not bypassed; the app's per-extension rate limits are respected, not avoided. FLAC/perfect-recording guarantees are not offered. This extension is not affiliated with Myspoti, YouTube or Google.
+Audio comes exclusively from YouTube Music's official catalog, fetched through the same public `youtubei` endpoints the YouTube Music web player uses. Nothing is decrypted: DRM streams are skipped, and the app's per-extension rate limits are respected, not avoided. This extension is not affiliated with Myspoti, YouTube or Google.
 
-## License
-
-[GPL-3.0](LICENSE); packaging scripts from the template are [MIT](LICENSE.txt).
+[GPL-3.0](LICENSE) throughout. The layout and the packaging script follow [kota-zo/myspoti-extension-template](https://github.com/kota-zo/myspoti-extension-template) (MIT); matching criteria adapted from my [Myspoti fork](https://github.com/y-exe/myspoti) (kept for comparison).
 
 ---
 
-<a id="ja"></a>
-## 日本語
-
-[Myspoti](https://github.com/kota-zo/myspoti) 向けの独立した `download-source` 拡張です。曲名・アーティスト・長さ（日本語の表記ゆれ対応）をYouTube Music公式カタログと照合し、元のAAC/M4Aを本体に渡します。本体がダウンロード・保存・再生を行い、拡張は音源候補を返すだけです。
-
-- **インストール**: ストアで「YouTube Music Download Helper」を検索 / 「設定 → 拡張機能 → アドレスからインストール」に `https://github.com/y-exe/myspoti-youtube-music` を入力 / [最新リリース](https://github.com/y-exe/myspoti-youtube-music/releases/latest)の `extension.zip` を端末に入れて「ファイルからインストール」。zipビルドは `node scripts/pack.js extension.zip`。
-- **実装**: タイトル類似度85%以上・アーティスト一致/包含・長さ−5s/+15sでの照合。曲の表記言語(日本語・韓国語・簡体/繁体中国語・ロシア語など)の検索ランキングを優先し、英語をフォールバックに。見つからなければ2巡。ライブ/カバー/カラオケ表記は各言語で拒否。
-- **検証**: betaアプリCLIとPC上のNodeで実トラックを検証済み。バッチ保存時の本体レート制限(120req/分)問題は v0.1.4 で修正（自己台帳で90req/分に制御）。
-- **取得できないもの**: 翻訳・ローマ字のみ表記の曲、公式masterの長さが大きく違う曲（SPECIALZ等）、一般投稿・公式MV、DRM音源。Spotify音声は取得しません。
-
-照合の詳細・制限は上の英語セクションを参照してください。
+© 2026 yexe

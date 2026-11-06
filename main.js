@@ -1,19 +1,19 @@
-/* SPDX-License-Identifier: GPL-3.0-only
- * Matching adapted from y-exe/myspoti; package layout: kota-zo/myspoti-extension-template.
- * No Spotify audio, account access, native bridge, or external resolver service.
+/* YouTube Music Download Helper — Myspoti向けdownload-source拡張
+ * Copyright (C) 2026 y-exe
+ * SPDX-License-Identifier: GPL-3.0-only
+ * 照合はフォーク(y-exe/myspoti)、構成はテンプレート(kota-zo/myspoti-extension-template)準拠。
+ * Spotify音源・アカウント・ネイティブブリッジ・外部サーバーは使わない。
  */
 (function () {
     'use strict';
     var MUSIC = 'https://music.youtube.com/youtubei/v1/search?prettyPrint=false';
     var API = 'https://youtubei.googleapis.com/youtubei/v1/';
-    // Client/session fields follow NewPipeExtractor and yt-dlp; no runtime or evaluator.
+    // クライアント/セッション項目はNewPipeExtractorとyt-dlpに準拠。動的なコード実行はしない。
     var AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15';
     var CREDITS = /\s*[〔【][^〕】]*cv\s*[:：][^〕】]*[〕】]/gi;
-    // Junk version markers per script: a cover, live cut or karaoke rating of the
-    // song is never the download, in any of the languages it gets titled by.
+    // 版違いの語(カバー/ライブ/カラオケ等)。曲名に同じ語を含まない候補は拒否する。
     var VERSIONS = /\b(live|cover|remix|remaster(?:ed)?|acoustic|instrumental|karaoke|slowed|sped[ -]?up|nightcore|reverb|8d)\b|ライブ|カバー|歌ってみた|弾いてみた|カラオケ|オルゴール|라이브|커버|리믹스|노래방|부르기|翻唱|现场|現場|混音|卡拉ok|伴奏|кавер|караоке|ремикс|инструментал/gi;
-    // Search rankings follow the listing's language: run the song's own script
-    // first, then English, which YouTube Music indexes under every region.
+    // 検索は曲の表記言語を優先し、英語をフォールバックに(全地域で索引されている)。
     var LANG = {
         ja: ['ja', 'en'], ko: ['ko', 'en'], zh: ['zh-TW', 'zh-CN', 'en'],
         ru: ['ru', 'en'], ar: ['ar', 'en'], hi: ['hi', 'en'], th: ['th', 'en'],
@@ -23,18 +23,15 @@
         ar: 'SA', hi: 'IN', th: 'TH', el: 'GR', he: 'IL' };
     var cache = {};
 
-    // English first, with the wording changes per `myspoti.locale` (read again on
-    // every call, so a language switch applies to the next message).
+    // 英語標準。myspoti.localeは毎回読み直し、言語切替を次の呼び出しから反映する。
     function T(en, ja) {
         var tag = '';
         try { tag = myspoti.locale || ''; } catch (e) {}
         return String(tag).replace(/_/g, '-').toLowerCase().split('-')[0] === 'ja' ? ja : en;
     }
 
-    // The app caps every extension at 120 requests a minute (sliding window), and
-    // a batch of downloads bursts past it: from then on every search is refused
-    // at the door with "more than 120 requests in a minute" and a whole failed batch.
-    // Keep a ledger of our own requests and wait before the cap is reached.
+    // 本体は拡張ごとに120リクエスト/分の上限(スライド窓)。連続保存で触れると以後の
+    // 検索が全滅するため、自前の台帳で上限到達前に待機する。
     var LIMIT = 90, WINDOW_MS = 60000, REQUESTS = [], NOTED = false;
     function balance() {
         var now = Date.now();
@@ -49,7 +46,7 @@
         try { myspoti.util.sleep(step); } catch (e) { throw new Error(BUDGET); }
         WAITED += step;
     }
-    // A hook budget is short; never spend more than a minute's share of it waiting.
+    // フック予算は短い。1回の呼び出しで待機は1分相当まで。
     function govern() {
         while (balance() <= 0 && WAITED < 13000) {
             if (!NOTED) { myspoti.log(T("Waiting: YouTube Music's per-minute cap is near", 'YouTube Musicのレート制限に近づいたため待機します')); NOTED = true; }
@@ -99,9 +96,7 @@
         list.forEach(function (a) { a.split(/,|、/).forEach(function (n) { n = artist(n); if (n && names.indexOf(n) < 0) names.push(n); }); });
         return names;
     }
-    // The song's writing system picks the languages: hangul is Korean, han without
-    // kana is Chinese, every other script maps to its own language, and a
-    // Latin-script song searches as English (YouTube Music ranks it the same way).
+    // 表記から言語を判定: ハングル=韓国語、漢字のみ=中国語、他は各言語。ラテン字は英語で検索。
     function languageOf(track) {
         var text = normalized((track.title || '') + ' ' + (track.artist || ''));
         return /[\u3040-\u30ff]/.test(text) ? 'ja' : /[\uac00-\ud7af]/.test(text) ? 'ko' :
@@ -138,8 +133,7 @@
         }
         return 1 - row[b.length] / Math.max(a.length, b.length, 1);
     }
-    // The window follows the app's own length check for a download: a YouTube
-    // master may run a little longer (video) or shorter (rounding) and stay the song.
+    // 窓は本体のダウンロード確認と同じ。公式masterは映像分で少し長い/丸めで短いことがある。
     function sameLength(seconds, track) {
         var diff = seconds * 1000 - track.durationMs;
         return diff >= -5000 && diff <= 15000;
@@ -148,10 +142,8 @@
         if (!(track.durationMs > 0) || !sameLength(hit.seconds, track)) return null;
         var unwanted = normalized(hit.title).match(VERSIONS) || [];
         if (unwanted.some(function (v) { return normalized(track.title).indexOf(v) < 0; })) return null;
-        // Official titles drift from Spotify's wording (translations, remasters, a
-        // vocalist appended): a near-equal title is accepted, distant ones are not.
-        // Chinese additionally varies between the simplified and traditional glyph
-        // sets between stores, so its floor is looser.
+        // 公式タイトルはSpotifyの表記とずれる(翻訳・リマスター・歌手追加)。近い表記のみ通す。
+        // 中国語はストア間の簡体/繁体の字形差があるため、閾値をさらに緩める。
         var wanted = title(track.title), got = title(hit.title);
         if (!wanted || !got) return null;
         var zh = languageOf(track) === 'zh';
@@ -218,10 +210,9 @@
             } catch (e) {
                 var message = String((e && e.message) || e);
                 if (message.indexOf('requests in a minute') >= 0) {
-                    // The app's own ledger is fuller than ours (it counts some calls we
-                    // cannot see). A hook cannot hold out the whole minute: wait as long
-                    // as the budget allows, then hand the failure to the app, which
-                    // treats a rate-limited hook as "not answered now", not "not found".
+                    // 本体の台帳は自分のものより先に満ちる(見えない呼び出しも数える)。
+                    // フックは1分耐えられないので予算内で待ち、だめなら「レート制限中」を
+                    // 投げて本体に再試行させる(見つからない誤登録を防ぐ)。
                     if (WAITED >= 13000 || end - Date.now() < 2500) {
                         throw new Error(T('YouTube Music is rate limited, please try again in a minute',
                             'YouTube Musicのレート制限中です。しばらく待ってから再試行してください'));
@@ -278,7 +269,7 @@
             var s = streams[i], size = Number(s.contentLength);
             var url = s.url + '&cpn=' + encodeURIComponent(cpn);
             try {
-                // A prefix can work while later bytes are refused. Check the tail as well.
+                // 先頭だけ取得できる場合があるため、末尾も確認する。
                 var ranges = ['bytes=0-511', 'bytes=' + (size - 512) + '-' + (size - 1)];
                 var usable = ranges.every(function (range) {
                     if (end - Date.now() < 1200) return false;
@@ -297,8 +288,7 @@
         return null;
     }
     myspoti.provide('status', function () {
-        // One cheap request, at most 3 s. Skip the probe while the rate ledger is
-        // hot: the probe must never eat a download's quota. A throw proves nothing.
+        // 安価な確認1回(最大3秒)。台帳が温かいうちは省略し、保存の枠を消費しない。
         try {
             if (balance() <= 0) return { live: true, detail: T('Status check skipped: the per-minute cap is near', 'レート制限中のため接続確認を省略しました') };
             REQUESTS.push(Date.now());
@@ -313,9 +303,8 @@
         if (!track || !track.title || !artistNames(track).length || !(track.durationMs > 0)) return [];
         WAITED = 0; NOTED = false;
         var end = Date.now() + 25000, list = queries(track), tried = {}, currentSession = null;
-        // The catalog's own ranking wobbles between identical requests (a karaoke storm
-        // can hide the official song in one reply and not in the next): one full pass,
-        // then a second pass with fresh search results while the budget holds.
+        // ランキングは同一リクエストでも揺れる(カラオケ群に公式曲が隠れたり隠れなかったり)。
+        // 1巡目の後、予算が許す限り2巡目を回す。
         for (var pass = 0; pass < 2; pass++) {
             if (pass === 1) {
                 cache = {};
@@ -323,9 +312,7 @@
                 currentSession = null;
             }
             for (var q = 0; q < list.length && end - Date.now() > 2000; q++) {
-                // Ranking flips between the languages (an official ATV hid behind karaoke in
-                // Japanese once, behind it in English by another); one query runs with the
-                // song's script first, English as the fallback for the same query.
+                // 言語ごとに順位が入れ替わるため、同一クエリを曲の表記言語→英語の順で回す。
                 var langs = languages(track);
                 for (var l = 0; l < langs.length && end - Date.now() > 2000; l++) {
                     try {

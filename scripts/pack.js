@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-/* Builds extension.zip: the package Myspoti installs — the same files, order and dates every
- * time. Same layout as `myspoti-ext pack`: manifest.json and the script named by "main" first,
- * then the icon, LICENSE and README.md when present, at the root of the zip, nothing else
- * (Myspoti refuses a package with other files). Fixed order and dates, so a rebuild gives the
- * same bytes, to compare the sha256.
+/* extension.zipを作る。manifest.jsonと「main」のスクリプトを先に、アイコン・LICENSE・README.mdを
+ * ルートに固定順・固定日時でまとめる。他のファイルがあるとMyspotiは拒否する。
+ * 同じ入力からは常に同一バイトになり、sha256で比較できる。
+ * Copyright (C) 2026 y-exe
+ * SPDX-License-Identifier: GPL-3.0-only
  *
  *     node scripts/pack.js [output.zip]
  */
@@ -13,10 +13,10 @@ const crypto = require('crypto');
 const path = require('path');
 const zlib = require('zlib');
 
-const KEPT = ['icon.png', 'LICENSE', 'LICENSE.txt', 'README.md'];
+const KEPT = ['icon.png', 'LICENSE', 'README.md'];
 const ROOT = path.dirname(__dirname);
-const DOS_DATE = (1 << 5) | 1; // 1980-01-01, zero time: the lowest ZIP can store
-const ATTRS = 0o100644 * 0x10000; // regular file, mode 644 (shift 16 overflows a signed 32-bit)
+const DOS_DATE = (1 << 5) | 1; // 1980-01-01 00:00。ZIPが扱える最古の日時。
+const ATTRS = 0o100644 * 0x10000; // 通常ファイル(mode 644)。16bitシフトは符号付き32bitを溢れるため掛け算。
 
 function crc32(buf) {
     let table = crc32.t;
@@ -33,7 +33,7 @@ function crc32(buf) {
     return (crc ^ -1) >>> 0;
 }
 
-// A tiny ZIP writer (deflate, no Zip64: packages here are a few tens of KiB).
+// 最小のZIPライタ(deflate)。Zip64不要: パッケージは数十KB程度。
 const u = (value, bytes) => { const b = Buffer.alloc(bytes); b.writeUIntLE(value, 0, bytes); return b; };
 
 function pack(names, read) {
@@ -73,8 +73,7 @@ function main() {
     const read = name => {
         if (!fs.existsSync(path.join(ROOT, name))) { console.error(name + ' is missing'); process.exit(1); }
         const data = fs.readFileSync(path.join(ROOT, name));
-        // Text members are stored with LF endings, so a Windows checkout packs the
-        // same bytes as CI's Linux one.
+        // テキストはLFに正規化し、WindowsとCIで同一バイトにする。
         return name.endsWith('.png') ? data : Buffer.from(data.toString('utf8').replace(/\r\n/g, '\n'), 'utf8');
     };
     const zip = pack(names.filter(n => !seen.has(n) && seen.add(n)), read);
