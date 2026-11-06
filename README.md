@@ -19,9 +19,9 @@ Not a lossless filler or a note-perfect recording matcher like my [Myspoti fork]
 
 ## Install
 
-- **Store**: once public, the repo is found by Myspoti's store via the `myspoti-extension` topic — nothing to submit.
+- **Store**: the repo is found by Myspoti's store via the `myspoti-extension` topic — nothing to submit.
 - **From an address**: Settings → Extensions → Install → *Install from an address*: `https://github.com/y-exe/myspoti-youtube-music`.
-- **From a file**: `node scripts/pack.js extension.zip`, push the zip to the phone and choose *Install from a file*. This is how it works while the repository is still private.
+- **From a file**: grab `extension.zip` from the [latest release](https://github.com/y-exe/myspoti-youtube-music/releases/latest) (or build it with `node scripts/pack.js extension.zip`), push it to the phone and choose *Install from a file*.
 
 Requires Myspoti 2.0.2-beta.4 or newer. All downloading, storage and encryption stay inside Myspoti — the extension only proposes files.
 
@@ -61,7 +61,7 @@ Audio comes exclusively from YouTube Music's official catalog (ATV-classified so
 
 [Myspoti](https://github.com/kota-zo/myspoti) 向けの独立した `download-source` 拡張です。曲名・アーティスト・長さ（日本語の表記ゆれ対応）をYouTube Music公式カタログと照合し、元のAAC/M4Aを本体に渡します。本体がダウンロード・保存・再生を行い、拡張は音源候補を返すだけです。
 
-- **インストール**: リポジトリURLを「設定 → 拡張機能 → アドレスからインストール」に入れる / 公開後はストアで発見されます（topic `myspoti-extension`）。zipビルドは `node scripts/pack.js extension.zip`。
+- **インストール**: ストアで「YouTube Music Download Helper」を検索 / 「設定 → 拡張機能 → アドレスからインストール」に `https://github.com/y-exe/myspoti-youtube-music` を入力 / [最新リリース](https://github.com/y-exe/myspoti-youtube-music/releases/latest)の `extension.zip` を端末に入れて「ファイルからインストール」。zipビルドは `node scripts/pack.js extension.zip`。
 - **実装**: タイトル類似度85%以上・アーティスト一致/包含・長さ−5s/+15sでの照合。曲の表記言語(日本語・韓国語・簡体/繁体中国語・ロシア語など)の検索ランキングを優先し、英語をフォールバックに。見つからなければ2巡。ライブ/カバー/カラオケ表記は各言語で拒否。
 - **検証**: betaアプリCLIとPC上のNodeで実トラックを検証済み。バッチ保存時の本体レート制限(120req/分)問題は v0.1.4 で修正（自己台帳で90req/分に制御）。
 - **取得できないもの**: 翻訳・ローマ字のみ表記の曲、公式masterの長さが大きく違う曲（SPECIALZ等）、一般投稿・公式MV、DRM音源。Spotify音声は取得しません。
