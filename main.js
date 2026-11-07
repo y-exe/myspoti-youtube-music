@@ -48,9 +48,10 @@
     }
 
     // 本体は拡張ごとに120リクエスト/分の上限(スライド窓)。連続保存で触れると以後の
-    // 検索が全滅するため、自前の台帳で上限到達前に待機する。PCハーネス(myspoti.debugあり)
-    // では上限を実質解除し、数曲一括の照合検証がレート制限で途切れないようにする。
-    var LIMIT = myspoti.debug ? 300 : 90, WINDOW_MS = 60000, REQUESTS = [], NOTED = false;
+    // 検索が全滅するため、自前の台帳で上限到達前に待機する。
+    // PCハーネス(myspoti.debugあり)では上限を実質解除し、多数曲の一括照合検証が
+    // レート制限で途切れないようにする。
+    var LIMIT = myspoti.debug ? 600 : 90, WINDOW_MS = 60000, REQUESTS = [], NOTED = false;
     function balance() {
         var now = Date.now();
         while (REQUESTS.length && now - REQUESTS[0] >= WINDOW_MS) REQUESTS.shift();
@@ -94,22 +95,33 @@
                 .replace(/([ハヒフヘホ])ﾟ/g, function (_, c) { return String.fromCharCode(c.charCodeAt(0) + 2); })
                 .replace(/ウﾞ/g, 'ヴ').replace(/　/g, ' ');
         }
+        // アラビア語の表記ゆれ(ハムザの種類・マクサ・ター'"・母音記号)を1文字に畳む。
+        // ストアとYouTube公式で方の書き分けが揺れるため、比較の前に吸収する。
+        s = s.replace(/[\u064b-\u0652\u0640]/g, '')
+            .replace(/[\u0622\u0623\u0625\u0671]/g, '\u0627')
+            .replace(/\u0649/g, '\u064a')
+            .replace(/\u0629/g, '\u0647');
         return s.toLowerCase();
     }
     function letters(value) {
         return normalized(value).replace(/[^a-z0-9\u00c0-\u024f\u0370-\u06ff\u0900-\u097f\u0e00-\u0e7f\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff\uac00-\ud7af]/g, '');
     }
-    // 公式側タイトルの丸括弧注記(映画・主題歌・OSTなど作品情報)は曲名でない。注記語を含むときだけ外す。
+    // 公式側タイトル・アーティスト列の丸括弧注記(映画・主題歌・OST・別名)は情報でない。
     var ANNOTATION = /主題曲|主题曲|片尾曲|插曲|電影|电影|電視劇|电视剧|主題歌|映画|劇場版|ドラマ|OST|soundtrack|theme song|韓劇|韩剧/i;
-    function title(value) {
-        var s = normalized(value).replace(/[（(【\[][^（(【\[）)】\]]*[）)】\]]/g, function (group) {
+    // 公式側の丸括弧注記(映画・主題歌・OST・アーティストの別名など作品情報)は曲名でも
+    // アーティスト名でもない。注記語を含む括弧だけ外す。
+    function stripNotes(s) {
+        return s.replace(/[（(【\[][^（(【\[）)】\]]*[）)】\]]/g, function (group) {
             return ANNOTATION.test(group) ? ' ' : group;
         });
+    }
+    function title(value) {
+        var s = stripNotes(normalized(value));
         return letters(s.replace(/\s*(?:\(|\[)?(?:feat|ft)\.?\s+.*/i, '')
             .replace(/\b(official|music|video|audio|lyrics?)\b/gi, ''));
     }
     function artist(value) {
-        return letters(normalized(value).replace(CREDITS, '')
+        return letters(stripNotes(normalized(value).replace(CREDITS, ''))
             .replace(/\s*-\s*topic$|vevo$|\s+official(?:\s+(?:channel|music))?$/i, ''));
     }
     function artistNames(track) {
@@ -179,6 +191,9 @@
         if (!wanted || !got) return null;
         var zh = languageOf(track) === 'zh';
         var titleScore = similarity(got, wanted);
+        // 公式側は曲名の前に転写(ラテン字)を付けたり、注記を残したりする。曲名が
+        // そのまま含まれているなら一致とみなす(逆方向は短い別曲を拾う恐れがあるので見ない)。
+        if (wanted.length >= 3 && got.indexOf(wanted) >= 0) titleScore = Math.max(titleScore, 0.9);
         if (titleScore < (zh ? 0.75 : 0.85)) {
             note('reject ' + hit.id + ': title ' + titleScore.toFixed(2) + ' (' + got + ' vs ' + wanted + ')');
             return null;
@@ -194,8 +209,11 @@
         var artistScore = 0;
         names.forEach(function (n) {
             channels.forEach(function (c) {
+                // 包含の最短長。漢字・かな・ハングルは2〜3字の名前が普通なので2字を許し、
+                // ラテン字は誤一致(短い語の部分一致)を避けるため4字のまま。
+                var min = /[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff\uac00-\ud7af]/.test(n) ? 2 : 4;
                 var points = c === n ? 1.0 :
-                    Math.min(c.length, n.length) >= 4 && (c.indexOf(n) >= 0 || n.indexOf(c) >= 0) ? 0.9 :
+                    Math.min(c.length, n.length) >= min && (c.indexOf(n) >= 0 || n.indexOf(c) >= 0) ? 0.9 :
                     zh && similarity(c, n) >= 0.65 ? 0.9 : 0;
                 if (points > artistScore) artistScore = points;
             });

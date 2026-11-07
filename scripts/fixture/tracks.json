@@ -14,18 +14,32 @@
 		"isrc": "JPA651904585"
 	},
 	{
-		"label": "ko:사랑이 아닌 단어로 사랑을 말해요 / siso(시소)",
-		"title": "사랑이 아닌 단어로 사랑을 말해요",
-		"artist": "siso(시소)",
-		"durationMs": 200000,
-		"isrc": "KRD712200007"
+		"label": "ja:ただ君に晴れ / ヨルシカ",
+		"title": "ただ君に晴れ",
+		"artist": "ヨルシカ",
+		"durationMs": 199000,
+		"isrc": "JPA651804024"
 	},
 	{
-		"label": "ko:사랑이 머문 골목길 / 청춘트로트",
-		"title": "사랑이 머문 골목길",
-		"artist": "청춘트로트",
-		"durationMs": 292000,
-		"isrc": "GXLEU2696612"
+		"label": "ja:ヒッチコック / ヨルシカ",
+		"title": "ヒッチコック",
+		"artist": "ヨルシカ",
+		"durationMs": 222000,
+		"isrc": "JPA651804021"
+	},
+	{
+		"label": "ko:사랑이 떠난 그날 (Rock) / 뮤즈루카",
+		"title": "사랑이 떠난 그날 (Rock)",
+		"artist": "뮤즈루카",
+		"durationMs": 194000,
+		"isrc": "QZNWW2655149"
+	},
+	{
+		"label": "ko:바람이 차졌다 (The Wind Has Tu / 상상 음악산책",
+		"title": "바람이 차졌다 (The Wind Has Turned Colder)",
+		"artist": "상상 음악산책",
+		"durationMs": 202000,
+		"isrc": "GXLES2696206"
 	},
 	{
 		"label": "zh:小幸運 / 田馥甄",
@@ -42,6 +56,20 @@
 		"isrc": "TWD951043107"
 	},
 	{
+		"label": "zh:乾淨的房間 / 田馥甄",
+		"title": "乾淨的房間",
+		"artist": "田馥甄",
+		"durationMs": 236000,
+		"isrc": "TWEW72601004"
+	},
+	{
+		"label": "zh:大船 / 田馥甄",
+		"title": "大船",
+		"artist": "田馥甄",
+		"durationMs": 192000,
+		"isrc": "TWEW72601001"
+	},
+	{
 		"label": "ru:Полковнику никто не пише / Би-2",
 		"title": "Полковнику никто не пишет",
 		"artist": "Би-2",
@@ -54,6 +82,20 @@
 		"artist": "Би-2",
 		"durationMs": 301000,
 		"isrc": "UAMU11404922"
+	},
+	{
+		"label": "ru:Серебро / Би-2",
+		"title": "Серебро",
+		"artist": "Би-2",
+		"durationMs": 277000,
+		"isrc": "UAMU11404931"
+	},
+	{
+		"label": "ru:Мой рок-н-ролл / Би-2",
+		"title": "Мой рок-н-ролл",
+		"artist": "Би-2",
+		"durationMs": 405000,
+		"isrc": "RUA741913005"
 	},
 	{
 		"label": "el:Την έχω πάθει τη ζημιά / Θανάσης Ρουγκάλας",
@@ -70,11 +112,18 @@
 		"isrc": "TRBIR2100882"
 	},
 	{
-		"label": "he:תתארו לכם / Shlomo Artzi",
-		"title": "תתארו לכם",
-		"artist": "שלמה ארצי",
-		"durationMs": 227000,
-		"isrc": "IL1000001510"
+		"label": "el:Τα φιλιά σου τα γυρεύω / Θανάσης Ρουγκάλας",
+		"title": "Τα φιλιά σου τα γυρεύω",
+		"artist": "Θανάσης Ρουγκάλας",
+		"durationMs": 177000,
+		"isrc": "QM6P42563784"
+	},
+	{
+		"label": "el:Να 'χα τη χάρη σας βουνά / Θανάσης Ρουγκάλας",
+		"title": "Να 'χα τη χάρη σας βουνά",
+		"artist": "Θανάσης Ρουγκάλας",
+		"durationMs": 242000,
+		"isrc": "QM6P42563788"
 	},
 	{
 		"label": "he:אהבה ראשונה / נדב חנציס",
@@ -82,6 +131,27 @@
 		"artist": "נדב חנציס",
 		"durationMs": 181000,
 		"isrc": "IL1012600413"
+	},
+	{
+		"label": "he:אהבה מפלסטיק / עידן בקשי",
+		"title": "אהבה מפלסטיק",
+		"artist": "עידן בקשי",
+		"durationMs": 181000,
+		"isrc": "QZAMM2034820"
+	},
+	{
+		"label": "he:אהבה כמו שלנו / היוצרים",
+		"title": "אהבה כמו שלנו",
+		"artist": "היוצרים",
+		"durationMs": 232000,
+		"isrc": "IL5842661542"
+	},
+	{
+		"label": "he:אהבה לוקחת זמן / יהלי שניידר והתספורת",
+		"title": "אהבה לוקחת זמן",
+		"artist": "יהלי שניידר והתספורת",
+		"durationMs": 224000,
+		"isrc": "IL7712600691"
 	},
 	{
 		"label": "ar:حبيبي / كزبرة",
@@ -98,11 +168,46 @@
 		"isrc": "AEA141303784"
 	},
 	{
+		"label": "ar:حبيبي والا لا / وليد التلاوي",
+		"title": "حبيبي والا لا",
+		"artist": "وليد التلاوي",
+		"durationMs": 141000,
+		"isrc": "DGA062243344"
+	},
+	{
+		"label": "ar:حبيبي شكرا - في حياتنا ن / وهبه",
+		"title": "حبيبي شكرا - في حياتنا ناس",
+		"artist": "وهبه",
+		"durationMs": 123000,
+		"isrc": "TCAHE2388003"
+	},
+	{
 		"label": "hi:दिलरुबा / पन्ने सिंह चौहान",
 		"title": "दिलरुबा",
 		"artist": "पन्ने सिंह चौहान",
 		"durationMs": 320000,
 		"isrc": "ZZA192608615"
+	},
+	{
+		"label": "hi:तेरा शहर / रूहान",
+		"title": "तेरा शहर",
+		"artist": "रूहान",
+		"durationMs": 179000,
+		"isrc": "RUA1D2634577"
+	},
+	{
+		"label": "hi:सपना संगीत / स्लीपिंग म्यूजिक जोन",
+		"title": "सपना संगीत",
+		"artist": "स्लीपिंग म्यूजिक जोन",
+		"durationMs": 176000,
+		"isrc": "PLS922495406"
+	},
+	{
+		"label": "hi:टिन की छत पर बारिश / आराम करने वाली दवा",
+		"title": "टिन की छत पर बारिश",
+		"artist": "आराम करने वाली दवा",
+		"durationMs": 119000,
+		"isrc": "GBSMU6573551"
 	},
 	{
 		"label": "th:สบาย สบาย / เบิร์ด ธงไชย",
@@ -119,6 +224,20 @@
 		"isrc": "THG010734664"
 	},
 	{
+		"label": "th:บูมเมอแรง / เบิร์ด ธงไชย",
+		"title": "บูมเมอแรง",
+		"artist": "เบิร์ด ธงไชย",
+		"durationMs": 209000,
+		"isrc": "THG010800624"
+	},
+	{
+		"label": "th:อย่าต่อรองหัวใจ / เบิร์ด ธงไชย",
+		"title": "อย่าต่อรองหัวใจ",
+		"artist": "เบิร์ด ธงไชย",
+		"durationMs": 226000,
+		"isrc": "THG010800830"
+	},
+	{
 		"label": "en:Water Underground / Real Estate",
 		"title": "Water Underground",
 		"artist": "Real Estate",
@@ -131,5 +250,19 @@
 		"artist": "Real Estate",
 		"durationMs": 168000,
 		"isrc": "GBCEL1100366"
+	},
+	{
+		"label": "en:Darling / Real Estate",
+		"title": "Darling",
+		"artist": "Real Estate",
+		"durationMs": 260000,
+		"isrc": "GBCEL1600492"
+	},
+	{
+		"label": "en:Silent World / Real Estate",
+		"title": "Silent World",
+		"artist": "Real Estate",
+		"durationMs": 282000,
+		"isrc": "GBCEL1900133"
 	}
 ]

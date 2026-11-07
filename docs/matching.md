@@ -43,11 +43,16 @@ candidate. Everything happens inside Myspoti's 25 s hook budget.
   contain the same word.
 - **Title similarity ≥ 0.85** (Levenshtein over letters-only, case- and
   width-normalized). Chinese uses 0.75: stores drift between simplified and
-  traditional glyphs (`告白气球` vs `告白氣球`).
-- **Artist equality or containment ≥ 0.9:** exact match, or 4+ character containment
-  (`Official髭男dism` vs `ヒゲダン` would not pass; channel suffixes `- Topic`/`VEVO`
-  are stripped first). Chinese additionally accepts similarity ≥ 0.65, because
-  `周杰伦` and `周杰倫` are the same artist written differently.
+  traditional glyphs (`告白气球` vs `告白氣球`). A store title that appears verbatim
+  inside the YouTube title (transliteration prefixes, leftover notes) counts as 0.9.
+- **Artist equality or containment ≥ 0.9:** exact match, or containment of the store
+  name in the channel name (or the reverse) — minimum 2 characters for CJK/kana/hangul
+  names, 4 for Latin ones (`Official髭男dism` vs `ヒゲダン` would not pass; channel
+  suffixes `- Topic`/`VEVO` and parenthetical aliases (`田馥甄 (Hebe Tien)`) are
+  stripped first). Chinese additionally accepts similarity ≥ 0.65, because
+  `周杰伦` and `周杰倫` are the same artist written differently. Arabic spelling
+  variants (hamza forms, ى/ي, ة/ه, tatweel, diacritics) are folded before any
+  comparison, since stores and YouTube disagree on them.
 - **Score** = title × 0.6 + artist × 0.25 + length closeness × 0.15. The best total
   wins; ties resolve toward higher bitrate at fetch time.
 
@@ -85,15 +90,18 @@ skipped while the ledger is hot so it never consumes a download's quota.
 
 `scripts/harness.js` runs this exact extension code on Node: it stubs `myspoti`
 (synchronous HTTP through a per-request child agent, Atomics-based sleep), feeds it
-`scripts/fixture/tracks.json`, and reports one line per track. The fixture holds two
+`scripts/fixture/tracks.json`, and reports one line per track. The fixture holds
 mid-popularity real songs per supported language — collected from the Deezer catalog
-by `scripts/collect.js` (ISRC and store duration included). A track passes when the
-same gates accept a YouTube Music ATV row; the audio fetch is skipped (`debug://match`)
-unless `--full` is given.
+by `scripts/collect.js` (ISRC and store duration included). Every candidate is
+pre-verified against YouTube Music: only songs whose official (ATV) listing matches
+the store duration within ±3 s **and** the store title are kept, so a harness failure
+means a matching bug, not a missing catalog entry. A track passes when the same gates
+accept the row; the audio fetch is skipped (`debug://match`) unless `--full` is given.
 
 ```sh
-node scripts/collect.js   # rebuild the fixture from the Deezer catalog (~1 min)
-node scripts/harness.js   # every listed track must MATCH (19/19)
+node scripts/collect.js   # rebuild the fixture from the Deezer catalog (~2 min)
+node scripts/harness.js   # every listed track must MATCH
+node scripts/harness.js --only=田馥甄   # run a subset
 ```
 
 Rejections and per-candidate scores are printed with the `reject …`/`accept …` notes
