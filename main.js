@@ -22,12 +22,23 @@
     var REGION = { ja: 'JP', ko: 'KR', 'zh-TW': 'TW', 'zh-CN': 'US', en: 'US', ru: 'RU',
         ar: 'SA', hi: 'IN', th: 'TH', el: 'GR', he: 'IL' };
     var cache = {};
+    // 返す音源の実用上限(1GiB)。公式楽曲でこれを超えるのは異常値(誤提供・汚染)扱いにする。
+    var MAX_SIZE = 1073741824;
+    // 検索クライアントの版。本体がHTTP 400/403で拒否してきたときだけ予備の版に切り替える。
+    var CLIENT_VERSIONS = ['1.20251013.03.00', '1.20241111.01.00'], CLIENT = 0;
+    // 匿名セッション(visitorData)は1時間だけ再利用する。ダウンロード1件ごとの取得要求を省く。
+    var SESSION = null;
 
     // 英語標準。myspoti.localeは毎回読み直し、言語切替を次の呼び出しから反映する。
     function T(en, ja) {
         var tag = '';
         try { tag = myspoti.locale || ''; } catch (e) {}
         return String(tag).replace(/_/g, '-').toLowerCase().split('-')[0] === 'ja' ? ja : en;
+    }
+
+    // ログにはURL等を出さない。本体のエラーメッセージの形式が変わっても1箇所で直る。
+    function scrub(message) {
+        return String(message).replace(/https?:\/\/\S+/g, '<address>');
     }
 
     // 本体は拡張ごとに120リクエスト/分の上限(スライド窓)。連続保存で触れると以後の
@@ -115,10 +126,11 @@
         var bare = name.replace(/\s*(?:\(|\[)?(?:feat|ft)\.?\s+.*/i, '').trim();
         var words = bare.replace(/[^a-zA-Z0-9\u00c0-\u024f\u0370-\u05ff\u0600-\u06ff\u0900-\u097f\u0e00-\u0e7f\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff\uac00-\ud7af\s]/g, ' ').replace(/\s+/g, ' ').trim();
         var out = [];
-        if (/^[a-z]{2}[a-z0-9]{3}[0-9]{7}$/i.test(track.isrc || '')) out.push(track.isrc);
         [name + ' ' + main, bare + ' ' + main, words + ' ' + main, bare].forEach(function (q) {
             q = q.trim(); if (q && out.indexOf(q) < 0) out.push(q);
         });
+        // ISRC検索で公式曲に当たることは少ない。まず曲名ベースを出し切ってから出す(台帳の節約)。
+        if (/^[a-z]{2}[a-z0-9]{3}[0-9]{7}$/i.test(track.isrc || '')) out.push(track.isrc);
         return out;
     }
     function similarity(a, b) {
@@ -200,13 +212,20 @@
         return hits;
     }
     function json(url, body, headers, end) {
+        var retried = false;
         for (var attempt = 0; attempt < 8; attempt++) {
             var left = end - Date.now();
             if (left < 1200) throw new Error(BUDGET);
             try {
                 var response = gpost(url, body, { headers: headers || {}, timeout: Math.min(left - 200, 7000) });
-                if (!response.ok) throw new Error('YouTube HTTP ' + response.status);
-                return response.json();
+                if (response.ok) return response.json();
+                // YouTube側の一時的な障害(5xx)のときだけ、予算内で1回出し直す。
+                if (response.status >= 500 && !retried && left > 3000) {
+                    retried = true;
+                    sleep(600);
+                    continue;
+                }
+                throw new Error('YouTube HTTP ' + response.status);
             } catch (e) {
                 var message = String((e && e.message) || e);
                 if (message.indexOf('requests in a minute') >= 0) {
@@ -229,8 +248,21 @@
     function search(query, language, end) {
         var key = language + ':' + query;
         if (cache[key] && Date.now() - cache[key].time < 300000) return cache[key].hits;
-        var result = json(MUSIC, { context: { client: { clientName: 'WEB_REMIX', clientVersion: '1.20251013.03.00', hl: language, gl: REGION[language] || 'US' } },
-            query: query, params: 'EgWKAQIIAWoKEAkQChAFEAMQBA%3D%3D' }, { Origin: 'https://music.youtube.com' }, end);
+        function call() {
+            return json(MUSIC, { context: { client: { clientName: 'WEB_REMIX', clientVersion: CLIENT_VERSIONS[CLIENT], hl: language, gl: REGION[language] || 'US' } },
+                query: query, params: 'EgWKAQIIAWoKEAkQChAFEAMQBA%3D%3D' }, { Origin: 'https://music.youtube.com' }, end);
+        }
+        var result;
+        try {
+            result = call();
+        } catch (e) {
+            // 版が退役して拒否される(HTTP 400/403)ときだけ、予備の版に切り替えて1回出し直す。
+            if (CLIENT + 1 < CLIENT_VERSIONS.length && /HTTP 40[03]/.test(String((e && e.message) || e))) {
+                CLIENT++;
+                cache = {};
+                result = call();
+            } else throw e;
+        }
         if (result.error) throw new Error(T('YouTube Music refused the search', 'YouTube Musicが検索を拒否しました'));
         var hits = parseSearch(result);
         if (Object.keys(cache).length >= 32) cache = {};
@@ -243,6 +275,8 @@
         return value;
     }
     function session(end) {
+        // 1時間以内に取得したものは再利用する。落ちたら次の呼び出しで再取得する。
+        if (SESSION && Date.now() - SESSION.time < 3600000) return SESSION.value;
         var client = { clientName: 'VISIONOS', clientVersion: '1.02', deviceMake: 'Apple', deviceModel: 'RealityDevice17,1',
             osName: 'visionOS', osVersion: '26.5.23O471', platform: 'MOBILE', hl: 'ja', gl: 'JP', utcOffsetMinutes: 540 };
         var headers = { 'User-Agent': AGENT, 'X-Goog-Api-Format-Version': '2' };
@@ -250,7 +284,8 @@
         var value = (visitor.responseContext || {}).visitorData;
         if (typeof value !== 'string' || !value || value.length > 4096) throw new Error(T('Could not get an anonymous YouTube Music session', '匿名セッションを取得できませんでした'));
         client.visitorData = value;
-        return { client: client, headers: headers };
+        SESSION = { time: Date.now(), value: { client: client, headers: headers } };
+        return SESSION.value;
     }
     function fileFor(hit, track, end, currentSession) {
         var cpn = nonce(16);
@@ -262,7 +297,7 @@
         var streams = ((result.streamingData || {}).adaptiveFormats || []).filter(function (s) {
             return (!s.drmFamilies || !s.drmFamilies.length) && !s.signatureCipher && !s.cipher && /^audio\/mp4\s*;.*mp4a\./.test(s.mimeType || '') &&
                 /^https:\/\/[^/?#]+\.googlevideo\.com\/videoplayback\?/.test(s.url || '') &&
-                Number(s.contentLength) >= 10000 && Number(s.contentLength) < 9007199254740991 &&
+                Number(s.contentLength) >= 10000 && Number(s.contentLength) < MAX_SIZE &&
                 (!s.audioTrack || s.audioTrack.audioIsDefault !== false);
         }).sort(function (a, b) { return (b.averageBitrate || b.bitrate || 0) - (a.averageBitrate || a.bitrate || 0); });
         for (var i = 0; i < streams.length && end - Date.now() > 2000; i++) {
@@ -296,7 +331,13 @@
             return probe.ok ? { live: true } :
                 { live: false, detail: T('Could not reach YouTube Music (HTTP ', 'YouTube Musicに接続できません (HTTP ') + probe.status + ')' };
         } catch (e) {
-            return { live: true, detail: T('Status check failed, showing as live: ', '状態を確認できません: ') + String(e.message || e).replace(/https?:\/\/\S+/g, '<address>') };
+            var message = String((e && e.message) || e);
+            // タイムアウト・DNS失敗・応答なしは本当に届かないときに起きる(死んだVPNを含む)。
+            // 正直にlive:falseへ(それはダウンロードも失敗するので、そう報告したほうが実態に合う)。
+            if (/timeout|timed\s*out|cannot\s*resolve|unable\s*to\s*resolve|unreachable|no\s*address|econn|enet|etimed|socket|network/i.test(message))
+                return { live: false, detail: T('Cannot reach YouTube Music right now', '現在YouTube Musicに接続できません') };
+            // それ以外の想定外(本体側の事情など)は不確かさとして扱う(以前のfail-open)。
+            return { live: true, detail: T('Status check failed, showing as live: ', '状態を確認できません: ') + scrub(message) };
         }
     });
     myspoti.provide('download-source', function (track) {
@@ -327,7 +368,7 @@
                             if (file) return [file];
                         }
                     } catch (e) {
-                        myspoti.log(T('Search or fetch failed: ', '検索・取得に失敗しました: ') + String(e.message || e).replace(/https?:\/\/\S+/g, '<address>'));
+                        myspoti.log(T('Search or fetch failed: ', '検索・取得に失敗しました: ') + scrub(e.message || e));
                         if (e.message === BUDGET) { pass = 2; l = langs.length; q = list.length; }
                         if (String(e.message || e).indexOf('rate limited') >= 0) { pass = 2; l = langs.length; q = list.length; }
                     }

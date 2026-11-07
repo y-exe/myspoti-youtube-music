@@ -5,15 +5,18 @@ candidate. Everything happens inside Myspoti's 25 s hook budget.
 
 ## Pipeline
 
-1. **Queries.** ISRC first (when the track carries a valid one), then `title + artist`,
-   the feat-stripped title + artist, a punctuation-stripped words + artist variant, and
-   the bare title. CV-actor suffixes (`【CV: …】`) are removed before any of this.
+1. **Queries.** First `title + artist`, the feat-stripped title + artist, a
+   punctuation-stripped words + artist variant, and the bare title — then ISRC, when
+   the track carries a valid one (ISRC search rarely lands on the official row, so it
+   goes last). CV-actor suffixes (`【CV: …】`) are removed before any of this.
 2. **Languages.** The writing system of title + artist picks the search language, and
    English follows as fallback. Every query runs once per language; a second pass
    re-searches everything with fresh rankings when nothing matched.
 3. **Search.** WEB_REMIX `search` with the songs filter; only rows YouTube Music
    classifies as `MUSIC_VIDEO_TYPE_ATV` (official catalog) with an 11-character video
-   id, an artist column and a duration are kept.
+   id, an artist column and a duration are kept. If YouTube starts rejecting the
+   pinned client version outright (HTTP 400/403), the search switches to a reserve
+   version and retries once.
 4. **Scoring.** Candidates that pass the gates are ranked; the best one is resolved to
    an audio URL, which is probed and returned.
 
@@ -48,12 +51,23 @@ candidate. Everything happens inside Myspoti's 25 s hook budget.
 
 ## Audio resolution
 
-A VISIONOS client session is built from the public `visitor_id` endpoint (anonymous,
-one request). The player call filters adaptive formats: no DRM families, no
-`signatureCipher`, `audio/mp4` with `mp4a`, a `googlevideo.com/videoplayback` URL,
-sane content length, default audio track. The highest average bitrate wins, and both
-the first and the last 512 bytes must answer with `206` and the expected
-`Content-Range`/`Content-Type` before the candidate is offered as `m4a`.
+A VISIONOS client session is built from the public `visitor_id` endpoint (anonymous)
+and reused for an hour, so a batch does not re-request it for every track. The player
+call filters adaptive formats: no DRM families, no `signatureCipher`, `audio/mp4` with
+`mp4a`, a `googlevideo.com/videoplayback` URL, a content length between 10 KB and
+1 GiB, default audio track. The highest average bitrate wins, and both the first and
+the last 512 bytes must answer with `206` and the expected `Content-Range`/
+`Content-Type` before the candidate is offered as `m4a`. A transient YouTube-side
+error (HTTP 5xx) is retried once within the hook budget; everything else surfaces
+immediately.
+
+## Status
+
+The `status` hook probes `music.youtube.com` once. Unreachability is answered
+honestly (`live: false`) instead of pretending the source works: a timeout, DNS
+failure or dead connection — including a VPN that still holds a network slot with no
+underlying connectivity — means the downloads will fail with the same cause.
+Unexpected non-network errors stay fail-open, because they say nothing about reachability.
 
 ## The rate-limit ledger
 

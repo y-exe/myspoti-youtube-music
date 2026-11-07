@@ -5,6 +5,27 @@ with the answer. Two paths exist: the extension store / *Install from an address
 (which fetches this repo), or *Install from a file* with `extension.zip` from a
 [release](https://github.com/y-exe/myspoti-youtube-music/releases/latest).
 
+## Verifying the release zip
+
+Releases are built by `scripts/pack.js`, which is byte-stable: the same inputs always
+produce the same zip. After downloading a release, check the sha256 shown with the
+release before installing:
+
+PowerShell:
+
+```powershell
+Get-FileHash .\myspoti-youtube-music-1.0.3.zip -Algorithm SHA256
+```
+
+macOS / Linux:
+
+```sh
+shasum -a 256 myspoti-youtube-music-1.0.3.zip   # or: sha256sum …
+```
+
+The digest must match the one published with the release. A mismatch means the file
+was altered in transit — do not install it.
+
 ## Reading the extension console
 
 Every extension's detail page (Extensions → the extension) shows its console log. The
