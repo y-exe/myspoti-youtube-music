@@ -424,6 +424,12 @@
                 }
             }
         }
+        // 台帳待ちで予算を使い切った場合は「not found」ではなく「レート制限中」を投げる。
+        // 本体はこれを「答えられなかった」として後で再試行する(誤って見つからない扱いにならない)。
+        if (WAITED >= 13000 || (NOTED && balance() <= 0)) {
+            throw new Error(T('YouTube Music is rate limited, please try again in a minute',
+                'YouTube Musicのレート制限中です。しばらく待ってから再試行してください'));
+        }
         myspoti.log(Object.keys(tried).length ? T('Found matching candidates but could not fetch the audio', '一致候補はありましたが、音源を取得できませんでした') :
             T('No official song matched beyond doubt', '厳密に一致する公式楽曲が見つかりませんでした'));
         return [];
