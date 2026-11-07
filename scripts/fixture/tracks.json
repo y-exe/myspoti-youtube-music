@@ -1,0 +1,135 @@
+[
+	{
+		"label": "ja:言って。 / ヨルシカ",
+		"title": "言って。",
+		"artist": "ヨルシカ",
+		"durationMs": 242000,
+		"isrc": "JPA651703790"
+	},
+	{
+		"label": "ja:だから僕は音楽を辞めた / ヨルシカ",
+		"title": "だから僕は音楽を辞めた",
+		"artist": "ヨルシカ",
+		"durationMs": 242000,
+		"isrc": "JPA651904585"
+	},
+	{
+		"label": "ko:사랑이 아닌 단어로 사랑을 말해요 / siso(시소)",
+		"title": "사랑이 아닌 단어로 사랑을 말해요",
+		"artist": "siso(시소)",
+		"durationMs": 200000,
+		"isrc": "KRD712200007"
+	},
+	{
+		"label": "ko:사랑이 머문 골목길 / 청춘트로트",
+		"title": "사랑이 머문 골목길",
+		"artist": "청춘트로트",
+		"durationMs": 292000,
+		"isrc": "GXLEU2696612"
+	},
+	{
+		"label": "zh:小幸運 / 田馥甄",
+		"title": "小幸運",
+		"artist": "田馥甄",
+		"durationMs": 265000,
+		"isrc": "TWD951562101"
+	},
+	{
+		"label": "zh:寂寞寂寞就好 / 田馥甄",
+		"title": "寂寞寂寞就好",
+		"artist": "田馥甄",
+		"durationMs": 275000,
+		"isrc": "TWD951043107"
+	},
+	{
+		"label": "ru:Полковнику никто не пише / Би-2",
+		"title": "Полковнику никто не пишет",
+		"artist": "Би-2",
+		"durationMs": 292000,
+		"isrc": "UAMU11404921"
+	},
+	{
+		"label": "ru:Варвара / Би-2",
+		"title": "Варвара",
+		"artist": "Би-2",
+		"durationMs": 301000,
+		"isrc": "UAMU11404922"
+	},
+	{
+		"label": "el:Την έχω πάθει τη ζημιά / Θανάσης Ρουγκάλας",
+		"title": "Την έχω πάθει τη ζημιά",
+		"artist": "Θανάσης Ρουγκάλας",
+		"durationMs": 206000,
+		"isrc": "QM6P42563783"
+	},
+	{
+		"label": "el:Θα Στην Κάνω Την Ζημιά / Μάκης Καρράς",
+		"title": "Θα Στην Κάνω Την Ζημιά",
+		"artist": "Μάκης Καρράς",
+		"durationMs": 204000,
+		"isrc": "TRBIR2100882"
+	},
+	{
+		"label": "he:תתארו לכם / Shlomo Artzi",
+		"title": "תתארו לכם",
+		"artist": "שלמה ארצי",
+		"durationMs": 227000,
+		"isrc": "IL1000001510"
+	},
+	{
+		"label": "he:אהבה ראשונה / נדב חנציס",
+		"title": "אהבה ראשונה",
+		"artist": "נדב חנציס",
+		"durationMs": 181000,
+		"isrc": "IL1012600413"
+	},
+	{
+		"label": "ar:حبيبي / كزبرة",
+		"title": "حبيبي",
+		"artist": "كزبرة",
+		"durationMs": 187000,
+		"isrc": "AEA142403181"
+	},
+	{
+		"label": "ar:حبيبي أي لوفيو فيت بيتبو / شوقي",
+		"title": "حبيبي أي لوفيو فيت بيتبول",
+		"artist": "شوقي",
+		"durationMs": 241000,
+		"isrc": "AEA141303784"
+	},
+	{
+		"label": "hi:दिलरुबा / पन्ने सिंह चौहान",
+		"title": "दिलरुबा",
+		"artist": "पन्ने सिंह चौहान",
+		"durationMs": 320000,
+		"isrc": "ZZA192608615"
+	},
+	{
+		"label": "th:สบาย สบาย / เบิร์ด ธงไชย",
+		"title": "สบาย สบาย",
+		"artist": "เบิร์ด ธงไชย",
+		"durationMs": 219000,
+		"isrc": "THG010800604"
+	},
+	{
+		"label": "th:คุณรู้ไหมครับ / เบิร์ด ธงไชย",
+		"title": "คุณรู้ไหมครับ",
+		"artist": "เบิร์ด ธงไชย",
+		"durationMs": 270000,
+		"isrc": "THG010734664"
+	},
+	{
+		"label": "en:Water Underground / Real Estate",
+		"title": "Water Underground",
+		"artist": "Real Estate",
+		"durationMs": 206000,
+		"isrc": "GBCEL2300204"
+	},
+	{
+		"label": "en:It's Real / Real Estate",
+		"title": "It's Real",
+		"artist": "Real Estate",
+		"durationMs": 168000,
+		"isrc": "GBCEL1100366"
+	}
+]

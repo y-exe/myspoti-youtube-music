@@ -1,8 +1,8 @@
 {
   "id": "net.yexe.myspoti.youtubemusic",
   "name": "YouTube Music Download Helper",
-  "version": "1.0.3",
-  "versionCode": 10,
+  "version": "1.0.4",
+  "versionCode": 11,
   "author": "y-exe",
   "description": "Matches a track's title, artist and length against YouTube Music's official catalog — searching in the song's own script — and saves its original AAC/M4A audio.",
   "homepage": "https://github.com/y-exe/myspoti-youtube-music",
@@ -13,7 +13,7 @@
     "multilingual"
   ],
   "minAppVersion": "2.0.2-beta.4",
-  "changelog": "1.0.3: Honest offline status — timeouts now report the source as inactive; the anonymous session is reused for an hour; transient YouTube errors (HTTP 5xx) are retried once; a reserve client version kicks in if the pinned one is rejected; ISRC query moved last. 1.0.2: License housekeeping — one GPL-3.0 file, no separate packaging license. 1.0.1: The name stays English in every language. 1.0: Matching searches in the song's own script — Korean, Chinese, Russian, Greek, Hebrew, Arabic, Hindi, Thai — then English, with region-aware ranking.",
+  "changelog": "1.0.4: Multilingual matching verified song-by-song — production notes in official titles (movie/theme-song/OST markers) no longer break the comparison, and a PC regression harness covers two real songs in every supported language (19/19). 1.0.3: Honest offline status — timeouts now report the source as inactive; the anonymous session is reused for an hour; transient YouTube errors (HTTP 5xx) are retried once; a reserve client version kicks in if the pinned one is rejected; ISRC query moved last. 1.0.2: License housekeeping — one GPL-3.0 file, no separate packaging license. 1.0.1: The name stays English in every language. 1.0: Matching searches in the song's own script — Korean, Chinese, Russian, Greek, Hebrew, Arabic, Hindi, Thai — then English, with region-aware ranking.",
   "actions": [
     {
       "name": "download.source",
@@ -32,7 +32,7 @@
   "translations": {
     "ja": {
       "description": "曲名・アーティスト・長さを照合し、YouTube Musicの公式楽曲をAACで保存します。曲の表記言語(日本語・韓国語・中国語・ロシア語など)に沿って検索します。",
-      "changelog": "1.0.3: オフライン時のstatusを正直に(タイムアウトは非稼働を表示)。匿名セッションを1時間再利用。一時的なYouTube障害(HTTP 5xx)を1回だけ再試行。検索クライアントの版が拒否されたときの予備版。ISRCクエリを最後に出すように変更。1.0.2: ライセンス表記を整理(GPL-3.0に統一)。1.0.1: 拡張名は全言語で英語表示に統一。1.0: 曲の表記言語(韓国語・中国語・ロシア語・ギリシャ語・ヘブライ語・アラビア語・ヒンディー語・タイ語)に沿った検索と、地域に合わせたランキング参照に対応。",
+      "changelog": "1.0.4: 多言語照合を曲単位で検証 — 公式側タイトルの作品注記(映画・主題歌・OSTなど)が比較を壊さないようにし、対応する全言語の実在曲(PC回帰ハーネスで19/19)を通すことを確認。1.0.3: オフライン時のstatusを正直に(タイムアウトは非稼働を表示)。匿名セッションを1時間再利用。一時的なYouTube障害(HTTP 5xx)を1回だけ再試行。検索クライアントの版が拒否されたときの予備版。ISRCクエリを最後に出すように変更。1.0.2: ライセンス表記を整理(GPL-3.0に統一)。1.0.1: 拡張名は全言語で英語表示に統一。1.0: 曲の表記言語(韓国語・中国語・ロシア語・ギリシャ語・ヘブライ語・アラビア語・ヒンディー語・タイ語)に沿った検索と、地域に合わせたランキング参照に対応。",
       "actions": {
         "download.source": "YouTube Musicの公式楽曲からダウンロード音源を探す",
         "network": "楽曲の検索、音源URLの取得、有効性の確認"

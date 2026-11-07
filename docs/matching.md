@@ -18,7 +18,9 @@ candidate. Everything happens inside Myspoti's 25 s hook budget.
    pinned client version outright (HTTP 400/403), the search switches to a reserve
    version and retries once.
 4. **Scoring.** Candidates that pass the gates are ranked; the best one is resolved to
-   an audio URL, which is probed and returned.
+   an audio URL, which is probed and returned. Parenthetical production notes on the
+   YouTube side (movie / drama / theme-song / OST markers) are dropped before the
+   title comparison, so `小幸運(我的少女時代電影主題曲)` still matches the plain store title.
 
 | Script detected | Languages tried | Region (`gl`) |
 |---|---|---|
@@ -78,3 +80,21 @@ budget (at most ~13 s), and when the app still answers "more than 120 requests i
 minute" it throws "rate limited" — the app treats that as *not answered now*, so the
 song is retried later instead of being written off as not found. The `status` probe is
 skipped while the ledger is hot so it never consumes a download's quota.
+
+## Regression harness
+
+`scripts/harness.js` runs this exact extension code on Node: it stubs `myspoti`
+(synchronous HTTP through a per-request child agent, Atomics-based sleep), feeds it
+`scripts/fixture/tracks.json`, and reports one line per track. The fixture holds two
+mid-popularity real songs per supported language — collected from the Deezer catalog
+by `scripts/collect.js` (ISRC and store duration included). A track passes when the
+same gates accept a YouTube Music ATV row; the audio fetch is skipped (`debug://match`)
+unless `--full` is given.
+
+```sh
+node scripts/collect.js   # rebuild the fixture from the Deezer catalog (~1 min)
+node scripts/harness.js   # every listed track must MATCH (19/19)
+```
+
+Rejections and per-candidate scores are printed with the `reject …`/`accept …` notes
+when the harness runs, which is how language-specific gate problems get diagnosed.

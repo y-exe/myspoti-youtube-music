@@ -41,9 +41,16 @@
         return String(message).replace(/https?:\/\/\S+/g, '<address>');
     }
 
+    // 照合の内情。実機ではmyspoti.debugが無いので出ない。PCハーネス(scripts/harness.js)
+    // でどのゲートが落としたか・何点で通ったかを見るためのもの。
+    function note(message) {
+        if (myspoti.debug) myspoti.log(message);
+    }
+
     // 本体は拡張ごとに120リクエスト/分の上限(スライド窓)。連続保存で触れると以後の
-    // 検索が全滅するため、自前の台帳で上限到達前に待機する。
-    var LIMIT = 90, WINDOW_MS = 60000, REQUESTS = [], NOTED = false;
+    // 検索が全滅するため、自前の台帳で上限到達前に待機する。PCハーネス(myspoti.debugあり)
+    // では上限を実質解除し、数曲一括の照合検証がレート制限で途切れないようにする。
+    var LIMIT = myspoti.debug ? 300 : 90, WINDOW_MS = 60000, REQUESTS = [], NOTED = false;
     function balance() {
         var now = Date.now();
         while (REQUESTS.length && now - REQUESTS[0] >= WINDOW_MS) REQUESTS.shift();
@@ -92,8 +99,13 @@
     function letters(value) {
         return normalized(value).replace(/[^a-z0-9\u00c0-\u024f\u0370-\u06ff\u0900-\u097f\u0e00-\u0e7f\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff\uac00-\ud7af]/g, '');
     }
+    // 公式側タイトルの丸括弧注記(映画・主題歌・OSTなど作品情報)は曲名でない。注記語を含むときだけ外す。
+    var ANNOTATION = /主題曲|主题曲|片尾曲|插曲|電影|电影|電視劇|电视剧|主題歌|映画|劇場版|ドラマ|OST|soundtrack|theme song|韓劇|韩剧/i;
     function title(value) {
-        return letters(normalized(value).replace(/\s*(?:\(|\[)?(?:feat|ft)\.?\s+.*/i, '')
+        var s = normalized(value).replace(/[（(【\[][^（(【\[）)】\]]*[）)】\]]/g, function (group) {
+            return ANNOTATION.test(group) ? ' ' : group;
+        });
+        return letters(s.replace(/\s*(?:\(|\[)?(?:feat|ft)\.?\s+.*/i, '')
             .replace(/\b(official|music|video|audio|lyrics?)\b/gi, ''));
     }
     function artist(value) {
@@ -151,16 +163,26 @@
         return diff >= -5000 && diff <= 15000;
     }
     function score(hit, track) {
-        if (!(track.durationMs > 0) || !sameLength(hit.seconds, track)) return null;
+        if (!(track.durationMs > 0) || !sameLength(hit.seconds, track)) {
+            note('reject ' + hit.id + ': length ' + hit.seconds + 's vs track ' + Math.round(track.durationMs / 1000) + 's');
+            return null;
+        }
         var unwanted = normalized(hit.title).match(VERSIONS) || [];
-        if (unwanted.some(function (v) { return normalized(track.title).indexOf(v) < 0; })) return null;
+        var extra = unwanted.filter(function (v) { return normalized(track.title).indexOf(v) < 0; });
+        if (extra.length) {
+            note('reject ' + hit.id + ': version word ' + extra.join(','));
+            return null;
+        }
         // 公式タイトルはSpotifyの表記とずれる(翻訳・リマスター・歌手追加)。近い表記のみ通す。
         // 中国語はストア間の簡体/繁体の字形差があるため、閾値をさらに緩める。
         var wanted = title(track.title), got = title(hit.title);
         if (!wanted || !got) return null;
         var zh = languageOf(track) === 'zh';
         var titleScore = similarity(got, wanted);
-        if (titleScore < (zh ? 0.75 : 0.85)) return null;
+        if (titleScore < (zh ? 0.75 : 0.85)) {
+            note('reject ' + hit.id + ': title ' + titleScore.toFixed(2) + ' (' + got + ' vs ' + wanted + ')');
+            return null;
+        }
         var names = artistNames(track), channels = [];
         hit.artists.forEach(function (a) {
             String(a).split(/\s+[/|&]\s+|,|、/).forEach(function (c) {
@@ -168,6 +190,7 @@
                 if (c && channels.indexOf(c) < 0) channels.push(c);
             });
         });
+        if (myspoti.debug) note('score ' + hit.id + ': want[' + names.join('|') + '] got[' + channels.join('|') + ']');
         var artistScore = 0;
         names.forEach(function (n) {
             channels.forEach(function (c) {
@@ -177,9 +200,14 @@
                 if (points > artistScore) artistScore = points;
             });
         });
-        if (artistScore < 0.9) return null;
+        if (artistScore < 0.9) {
+            note('reject ' + hit.id + ': artist ' + artistScore.toFixed(2));
+            return null;
+        }
         var timeScore = 1 - Math.abs(hit.seconds * 1000 - track.durationMs) / 10000;
-        return titleScore * 0.6 + artistScore * 0.25 + timeScore * 0.15;
+        var total = titleScore * 0.6 + artistScore * 0.25 + timeScore * 0.15;
+        note('accept ' + hit.id + ': title ' + titleScore.toFixed(2) + ' artist ' + artistScore.toFixed(2) + ' total ' + total.toFixed(2));
+        return total;
     }
     function parseSearch(data) {
         var found = {}, hits = [];
@@ -265,6 +293,7 @@
         }
         if (result.error) throw new Error(T('YouTube Music refused the search', 'YouTube Musicが検索を拒否しました'));
         var hits = parseSearch(result);
+        note('search [' + query + '] / ' + language + ' -> ' + hits.length + ' official rows');
         if (Object.keys(cache).length >= 32) cache = {};
         cache[key] = { time: Date.now(), hits: hits };
         return hits;
@@ -288,6 +317,8 @@
         return SESSION.value;
     }
     function fileFor(hit, track, end, currentSession) {
+        // PCハーネスの照合検証では音源取得が対象外のため、ここで「一致済み」を返す。
+        if (myspoti.debug === 'match') return { url: 'debug://match/' + hit.id, format: 'm4a', headers: { 'User-Agent': AGENT }, sizeHint: 0, provider: 'YouTube Music (AAC)', isrcMatched: false };
         var cpn = nonce(16);
         var result = json(API + 'player?prettyPrint=false&id=' + hit.id + '&t=' + nonce(12),
             { context: { client: currentSession.client }, videoId: hit.id, cpn: cpn, contentCheckOk: true, racyCheckOk: true }, currentSession.headers, end);
