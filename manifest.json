@@ -13,7 +13,7 @@
     "multilingual"
   ],
   "minAppVersion": "2.0.2-beta.4",
-  "changelog": "1.0.4: Multilingual matching verified song-by-song — production notes in official titles (movie/theme-song/OST markers) no longer break the comparison, and a PC regression harness covers two real songs in every supported language (19/19). 1.0.3: Honest offline status — timeouts now report the source as inactive; the anonymous session is reused for an hour; transient YouTube errors (HTTP 5xx) are retried once; a reserve client version kicks in if the pinned one is rejected; ISRC query moved last. 1.0.2: License housekeeping — one GPL-3.0 file, no separate packaging license. 1.0.1: The name stays English in every language. 1.0: Matching searches in the song's own script — Korean, Chinese, Russian, Greek, Hebrew, Arabic, Hindi, Thai — then English, with region-aware ranking.",
+  "changelog": "1.0.4: Multilingual matching fixes and verification — production notes and alias parentheses in official titles/artist columns no longer break the comparison, Arabic spelling variants are folded, a store title contained in the YouTube title counts as matched, and a batch no longer writes songs off as not-found when the rate ledger eats the hook budget (the app retries them later). Audio URLs that answer a redirect (HTTP 302) are followed to the final host instead of being refused. Matching is verified song-by-song across every supported language with a PC regression harness.",
   "actions": [
     {
       "name": "download.source",
@@ -32,7 +32,7 @@
   "translations": {
     "ja": {
       "description": "曲名・アーティスト・長さを照合し、YouTube Musicの公式楽曲をAACで保存します。曲の表記言語(日本語・韓国語・中国語・ロシア語など)に沿って検索します。",
-      "changelog": "1.0.4: 多言語照合を曲単位で検証 — 公式側タイトルの作品注記(映画・主題歌・OSTなど)が比較を壊さないようにし、対応する全言語の実在曲(PC回帰ハーネスで19/19)を通すことを確認。1.0.3: オフライン時のstatusを正直に(タイムアウトは非稼働を表示)。匿名セッションを1時間再利用。一時的なYouTube障害(HTTP 5xx)を1回だけ再試行。検索クライアントの版が拒否されたときの予備版。ISRCクエリを最後に出すように変更。1.0.2: ライセンス表記を整理(GPL-3.0に統一)。1.0.1: 拡張名は全言語で英語表示に統一。1.0: 曲の表記言語(韓国語・中国語・ロシア語・ギリシャ語・ヘブライ語・アラビア語・ヒンディー語・タイ語)に沿った検索と、地域に合わせたランキング参照に対応。",
+      "changelog": "1.0.4: 多言語照合の修正と検証 — 公式側タイトル・アーティスト列の注記や別名の括弧が比較を壊さないようにし、アラビア語の表記ゆれ(ハムザ・ى/ي・ة/ه)を吸収。ストアの曲名が公式タイトルに含まれる場合は一致として扱い、レート制限でフック予算を使い切った曲は「見つからない」ではなく「後で再試行」。リダイレクト(HTTP 302)で答える音源URLも最終ホストまで追跡して保存できるようにしました。PC回帰ハーネスで対応する全言語の実在曲を検証。",
       "actions": {
         "download.source": "YouTube Musicの公式楽曲からダウンロード音源を探す",
         "network": "楽曲の検索、音源URLの取得、有効性の確認"

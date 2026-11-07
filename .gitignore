@@ -3,3 +3,6 @@ extension.zip
 *.patched.js
 __pycache__/
 .DS_Store
+
+# local fixture data
+scripts/fixture/

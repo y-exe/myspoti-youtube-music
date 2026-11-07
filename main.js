@@ -48,9 +48,10 @@
     }
 
     // 本体は拡張ごとに120リクエスト/分の上限(スライド窓)。連続保存で触れると以後の
-    // 検索が全滅するため、自前の台帳で上限到達前に待機する。PCハーネス(myspoti.debugあり)
-    // では上限を実質解除し、数曲一括の照合検証がレート制限で途切れないようにする。
-    var LIMIT = myspoti.debug ? 300 : 90, WINDOW_MS = 60000, REQUESTS = [], NOTED = false;
+    // 検索が全滅するため、自前の台帳で上限到達前に待機する。
+    // PCハーネス(myspoti.debugあり)では上限を実質解除し、多数曲の一括照合検証が
+    // レート制限で途切れないようにする。
+    var LIMIT = myspoti.debug ? 600 : 90, WINDOW_MS = 60000, REQUESTS = [], NOTED = false;
     function balance() {
         var now = Date.now();
         while (REQUESTS.length && now - REQUESTS[0] >= WINDOW_MS) REQUESTS.shift();
@@ -94,22 +95,33 @@
                 .replace(/([ハヒフヘホ])ﾟ/g, function (_, c) { return String.fromCharCode(c.charCodeAt(0) + 2); })
                 .replace(/ウﾞ/g, 'ヴ').replace(/　/g, ' ');
         }
+        // アラビア語の表記ゆれ(ハムザの種類・マクサ・ター'"・母音記号)を1文字に畳む。
+        // ストアとYouTube公式で方の書き分けが揺れるため、比較の前に吸収する。
+        s = s.replace(/[\u064b-\u0652\u0640]/g, '')
+            .replace(/[\u0622\u0623\u0625\u0671]/g, '\u0627')
+            .replace(/\u0649/g, '\u064a')
+            .replace(/\u0629/g, '\u0647');
         return s.toLowerCase();
     }
     function letters(value) {
         return normalized(value).replace(/[^a-z0-9\u00c0-\u024f\u0370-\u06ff\u0900-\u097f\u0e00-\u0e7f\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff\uac00-\ud7af]/g, '');
     }
-    // 公式側タイトルの丸括弧注記(映画・主題歌・OSTなど作品情報)は曲名でない。注記語を含むときだけ外す。
+    // 公式側タイトル・アーティスト列の丸括弧注記(映画・主題歌・OST・別名)は情報でない。
     var ANNOTATION = /主題曲|主题曲|片尾曲|插曲|電影|电影|電視劇|电视剧|主題歌|映画|劇場版|ドラマ|OST|soundtrack|theme song|韓劇|韩剧/i;
-    function title(value) {
-        var s = normalized(value).replace(/[（(【\[][^（(【\[）)】\]]*[）)】\]]/g, function (group) {
+    // 公式側の丸括弧注記(映画・主題歌・OST・アーティストの別名など作品情報)は曲名でも
+    // アーティスト名でもない。注記語を含む括弧だけ外す。
+    function stripNotes(s) {
+        return s.replace(/[（(【\[][^（(【\[）)】\]]*[）)】\]]/g, function (group) {
             return ANNOTATION.test(group) ? ' ' : group;
         });
+    }
+    function title(value) {
+        var s = stripNotes(normalized(value));
         return letters(s.replace(/\s*(?:\(|\[)?(?:feat|ft)\.?\s+.*/i, '')
             .replace(/\b(official|music|video|audio|lyrics?)\b/gi, ''));
     }
     function artist(value) {
-        return letters(normalized(value).replace(CREDITS, '')
+        return letters(stripNotes(normalized(value).replace(CREDITS, ''))
             .replace(/\s*-\s*topic$|vevo$|\s+official(?:\s+(?:channel|music))?$/i, ''));
     }
     function artistNames(track) {
@@ -146,6 +158,8 @@
         return out;
     }
     function similarity(a, b) {
+        // 計算量はO(長さ²)。異常に長い入力でフック予算を食い尽くさないよう打ち切る。
+        a = String(a).slice(0, 300); b = String(b).slice(0, 300);
         var row = [0], i, j;
         for (j = 1; j <= b.length; j++) row[j] = j;
         for (i = 0; i < a.length; i++) {
@@ -161,6 +175,18 @@
     function sameLength(seconds, track) {
         var diff = seconds * 1000 - track.durationMs;
         return diff >= -5000 && diff <= 15000;
+    }
+    // 非ラテン字の名前同士は語順の違い(姓+名の順が入れ替わる等)を吸収する:
+    // ストア名(4字以上)の各文字が重複込みで相手にすべて含まれれば一致扱いにする。
+    function contained(name, other) {
+        if (name.length < 4) return false;
+        var pool = other, i, at;
+        for (i = 0; i < name.length; i++) {
+            at = pool.indexOf(name.charAt(i));
+            if (at < 0) return false;
+            pool = pool.slice(0, at) + pool.slice(at + 1);
+        }
+        return true;
     }
     function score(hit, track) {
         if (!(track.durationMs > 0) || !sameLength(hit.seconds, track)) {
@@ -179,6 +205,9 @@
         if (!wanted || !got) return null;
         var zh = languageOf(track) === 'zh';
         var titleScore = similarity(got, wanted);
+        // 公式側は曲名の前に転写(ラテン字)を付けたり、注記を残したりする。曲名が
+        // そのまま含まれているなら一致とみなす(逆方向は短い別曲を拾う恐れがあるので見ない)。
+        if (wanted.length >= 3 && got.indexOf(wanted) >= 0) titleScore = Math.max(titleScore, 0.9);
         if (titleScore < (zh ? 0.75 : 0.85)) {
             note('reject ' + hit.id + ': title ' + titleScore.toFixed(2) + ' (' + got + ' vs ' + wanted + ')');
             return null;
@@ -194,9 +223,15 @@
         var artistScore = 0;
         names.forEach(function (n) {
             channels.forEach(function (c) {
+                // 包含の最短長。漢字・かな・ハングルは2〜3字の名前が普通なので2字を許し、
+                // ラテン字は誤一致(短い語の部分一致)を避けるため4字のまま。
+                var min = /[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff\uac00-\ud7af]/.test(n) ? 2 : 4;
+                var foreign = !/^[a-z0-9]*$/.test(n);
                 var points = c === n ? 1.0 :
-                    Math.min(c.length, n.length) >= 4 && (c.indexOf(n) >= 0 || n.indexOf(c) >= 0) ? 0.9 :
-                    zh && similarity(c, n) >= 0.65 ? 0.9 : 0;
+                    Math.min(c.length, n.length) >= min && (c.indexOf(n) >= 0 || n.indexOf(c) >= 0) ? 0.9 :
+                    zh && similarity(c, n) >= 0.65 ? 0.9 :
+                    foreign && contained(n, c) ? 0.9 :
+                    foreign && similarity(c, n) >= 0.85 ? 0.9 : 0;
                 if (points > artistScore) artistScore = points;
             });
         });
@@ -211,8 +246,8 @@
     }
     function parseSearch(data) {
         var found = {}, hits = [];
-        function visit(node) {
-            if (!node || typeof node !== 'object') return;
+        function visit(node, depth) {
+            if (!node || typeof node !== 'object' || depth > 14) return; // 深いネストの暴走止め
             var row = node.musicResponsiveListItemRenderer;
             if (row) {
                 var columns = row.flexColumns || [];
@@ -234,13 +269,13 @@
                     hits.push({ id: id, title: runs(0).map(function (r) { return r.text || ''; }).join(''), artists: names, seconds: seconds });
                 }
             }
-            Object.keys(node).forEach(function (key) { visit(node[key]); });
+            Object.keys(node).forEach(function (key) { visit(node[key], depth + 1); });
         }
-        visit(data);
+        visit(data, 0);
         return hits;
     }
     function json(url, body, headers, end) {
-        var retried = false;
+        var retried = false, backed = false;
         for (var attempt = 0; attempt < 8; attempt++) {
             var left = end - Date.now();
             if (left < 1200) throw new Error(BUDGET);
@@ -266,6 +301,19 @@
                     }
                     if (!NOTED) { myspoti.log(T('Rate limited by the per-minute cap, waiting', 'レート制限中: 1分あたりの上限に達したため待機します')); NOTED = true; }
                     sleep(Math.max(400, Math.min(1800, end - Date.now() - 2500)));
+                    continue;
+                }
+                // 403はYouTube側の一時的なフラグのことも多い。1秒置いて同じ版で1回だけ
+                // 出し直す(それでも403なら検索の予備版切替に任せる)。
+                if (!backed && /HTTP 403/.test(message) && end - Date.now() > 4000) {
+                    backed = true;
+                    sleep(1000);
+                    continue;
+                }
+                // 一時的なネットワークの揺らぎ(タイムアウト等)も予算内で1回だけ出し直す。
+                if (!retried && end - Date.now() > 3500 && /timeout|timed\s*out|socket|network|econn|reset/i.test(message)) {
+                    retried = true;
+                    sleep(500);
                     continue;
                 }
                 throw e;
@@ -316,6 +364,19 @@
         SESSION = { time: Date.now(), value: { client: client, headers: headers } };
         return SESSION.value;
     }
+    // 範囲取得。googlevideoはときどき302で別ホストへ転送するため、Locationを追跡して
+    // 最終的なURLと応答を返す(転送先がgooglevideo外や206以外なら null)。本体がダウンロード
+    // するときに302へ当たらないよう、返すのは転送後のURLにする。
+    function probeRange(url, range, end) {
+        for (var hop = 0; hop < 4; hop++) {
+            if (end - Date.now() < 1200) return null;
+            var probe = grequest({ url: url, method: 'GET', headers: { 'User-Agent': AGENT, Range: range },
+                timeout: Math.min(5000, end - Date.now() - 200) });
+            if (probe.status >= 300 && probe.status < 400 && /^https:\/\//.test(probe.headers['location'] || '')) { url = probe.headers['location']; continue; }
+            return probe.status === 206 ? { probe: probe, url: url } : null;
+        }
+        return null;
+    }
     function fileFor(hit, track, end, currentSession) {
         // PCハーネスの照合検証では音源取得が対象外のため、ここで「一致済み」を返す。
         if (myspoti.debug === 'match') return { url: 'debug://match/' + hit.id, format: 'm4a', headers: { 'User-Agent': AGENT }, sizeHint: 0, provider: 'YouTube Music (AAC)', isrcMatched: false };
@@ -327,7 +388,7 @@
         if (detail.videoId !== hit.id || detail.isLiveContent || !(Number(detail.lengthSeconds) > 0) || !sameLength(Number(detail.lengthSeconds), track)) return null;
         var streams = ((result.streamingData || {}).adaptiveFormats || []).filter(function (s) {
             return (!s.drmFamilies || !s.drmFamilies.length) && !s.signatureCipher && !s.cipher && /^audio\/mp4\s*;.*mp4a\./.test(s.mimeType || '') &&
-                /^https:\/\/[^/?#]+\.googlevideo\.com\/videoplayback\?/.test(s.url || '') &&
+                /^https:\/\/[^/?#@\\]+\.googlevideo\.com\/videoplayback\?/.test(s.url || '') &&
                 Number(s.contentLength) >= 10000 && Number(s.contentLength) < MAX_SIZE &&
                 (!s.audioTrack || s.audioTrack.audioIsDefault !== false);
         }).sort(function (a, b) { return (b.averageBitrate || b.bitrate || 0) - (a.averageBitrate || a.bitrate || 0); });
@@ -335,19 +396,16 @@
             var s = streams[i], size = Number(s.contentLength);
             var url = s.url + '&cpn=' + encodeURIComponent(cpn);
             try {
-                // 先頭だけ取得できる場合があるため、末尾も確認する。
-                var ranges = ['bytes=0-511', 'bytes=' + (size - 512) + '-' + (size - 1)];
-                var usable = ranges.every(function (range) {
-                    if (end - Date.now() < 1200) return false;
-                    var probe = grequest({ url: url, method: 'GET', headers: { 'User-Agent': AGENT, Range: range },
-                        timeout: Math.min(5000, end - Date.now() - 200) });
-                    if (probe.status !== 206) { myspoti.log(T('Range requests refused (HTTP ', '音源の範囲取得が拒否されました (HTTP ') + probe.status + ')'); return false; }
-                    var want = range.substring(6) + '/' + size;
-                    return probe.headers['content-range'] === 'bytes ' + want &&
-                        /^audio\/(mp4|x-m4a)(;|$)/i.test(probe.headers['content-type'] || '');
-                });
-                if (!usable) continue;
-                return { url: url, format: 'm4a', headers: { 'User-Agent': AGENT },
+                // 先頭だけ取得できる場合があるため、末尾も確認する。302の転送先も確かめる。
+                var head = probeRange(url, 'bytes=0-511', end);
+                if (!head) { myspoti.log(T('Range requests refused (HTTP ', '音源の範囲取得が拒否されました (HTTP ') + '3xx)'); continue; }
+                var tail = probeRange(head.url, 'bytes=' + (size - 512) + '-' + (size - 1), end);
+                if (!tail) { myspoti.log(T('Range requests refused (HTTP ', '音源の範囲取得が拒否されました (HTTP ') + '3xx)'); continue; }
+                var usable = head.probe.headers['content-range'] === 'bytes 0-511/' + size &&
+                    tail.probe.headers['content-range'] === 'bytes ' + (size - 512) + '-' + (size - 1) + '/' + size &&
+                    /^audio\/(mp4|x-m4a)(;|$)/i.test(head.probe.headers['content-type'] || '');
+                if (!usable) { myspoti.log(T('Range requests refused (HTTP ', '音源の範囲取得が拒否されました (HTTP ') + head.probe.status + ')'); continue; }
+                return { url: head.url, format: 'm4a', headers: { 'User-Agent': AGENT },
                     sizeHint: size, provider: 'YouTube Music (AAC)', isrcMatched: false };
             } catch (e) { myspoti.log(T('Could not verify the audio URL', '音源URLの確認に失敗しました')); }
         }
@@ -405,6 +463,12 @@
                     }
                 }
             }
+        }
+        // 台帳待ちで予算を使い切った場合は「not found」ではなく「レート制限中」を投げる。
+        // 本体はこれを「答えられなかった」として後で再試行する(誤って見つからない扱いにならない)。
+        if (WAITED >= 13000 || (NOTED && balance() <= 0)) {
+            throw new Error(T('YouTube Music is rate limited, please try again in a minute',
+                'YouTube Musicのレート制限中です。しばらく待ってから再試行してください'));
         }
         myspoti.log(Object.keys(tried).length ? T('Found matching candidates but could not fetch the audio', '一致候補はありましたが、音源を取得できませんでした') :
             T('No official song matched beyond doubt', '厳密に一致する公式楽曲が見つかりませんでした'));

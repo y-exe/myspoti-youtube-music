@@ -15,7 +15,9 @@ const path = require('path');
 const cp = require('child_process');
 
 const FULL = process.argv.includes('--full');
-const fixture = process.argv.slice(2).filter(a => a !== '--full')[0] || path.join(__dirname, 'fixture', 'tracks.json');
+const onlyArg = process.argv.find(a => a.startsWith('--only='));
+const only = onlyArg ? onlyArg.slice('--only='.length) : '';
+const fixture = process.argv.slice(2).filter(a => a !== '--full' && !a.startsWith('--only='))[0] || path.join(__dirname, 'fixture', 'tracks.json');
 
 // --- myspotiスタブ -----------------------------------------------------------
 // httpは実ネット(同期ブリッジ)。本体と同じくオブジェクトを渡し、ok/status/headers/jsonを持つ。
@@ -78,6 +80,7 @@ if (!source) { console.error('download-source is not registered'); process.exit(
 
 const results = [];
 for (const t of tracks) {
+    if (only && !(t.label + ' ' + t.title + ' ' + t.artist).toUpperCase().includes(only.toUpperCase())) continue;
     let answer;
     try {
         answer = source(t);

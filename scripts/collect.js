@@ -1,9 +1,14 @@
 #!/usr/bin/env node
-/* フィクスチャ収集。各言語のアーティスト(現地語表記)をDeezer公開APIで検索し、
- * 中程度の有名度(rank)の曲を最低1曲づつ、ISRCと実尺つきでfixture/tracks.jsonに書く。
- * 書き言葉が要求と合わない結果(ローマ字転写など)は読み飛ばす。
+/* フィクスチャ収集エンジン。Deezer公開APIで楽曲を検索し、YouTube Musicの公式(ATV)
+ * カタログに掲載が確認できた曲だけをfixture/tracks.jsonに書き出す(ISRC・実尺つき)。
+ * 検索語(アーティスト名・キーワード)は fixture/sources.local.json から読む。
  *
- *     node scripts/collect.js
+ *     node scripts/collect.js [言語あたりの曲数=4]
+ *
+ * sources.local.json の形式:
+ *     { "ja": { "script": "kana",   "artists": ["…"], "keywords": ["…"] },
+ *       "en": { "script": "latin",  "artists": ["…"], "keywords": ["…"] }, … }
+ * script は kana/hangul/han/cyrillic/greek/hebrew/arabic/devanagari/thai/latin のいずれか。
  * Copyright (C) 2026 y-exe
  * SPDX-License-Identifier: GPL-3.0-only
  */
@@ -11,27 +16,85 @@
 const fs = require('fs');
 const path = require('path');
 
-// 対応言語ごとに候補アーティスト(現地語)。順に試し、条件に合う曲が集まったら次の言語へ。
-// アーティストで集まらない場合はキーワード検索で埋める(現地語の共通語)。
-const LANG = {
-    ja: { script: /[\u3040-\u30ff]/, artists: ['Aimer', 'ヨルシカ', 'サカナクション', 'ずっと真夜中でいいのに。', 'ミツメ'], keywords: ['夜', '光'] },
-    ko: { script: /[\uac00-\ud7af]/, artists: ['백예린', '혁오', '검정치마', '이무진', '임영웅'], keywords: ['사랑', '바람'] },
-    zh: { script: /[\u3400-\u9fff]/, artists: ['陳綺貞', '告五人', '田馥甄', '五月天', '周杰倫'], keywords: ['花', '夜'] },
-    ru: { script: /[\u0400-\u04ff]/, artists: ['Би-2', 'Сплин', 'Земфира', 'Пилот', 'Дельфин'], keywords: ['осень', 'небо'] },
-    el: { script: /[\u0370-\u03ff]/, artists: ['Νατάσα Θεοδωρίδου', 'Πέγκυ Ζήνα', 'Δέσποινα Βανδή', 'Σάκης Ρουβάς'], keywords: ['ζημιά', 'θάλασσα'] },
-    he: { script: /[\u0590-\u05ff]/, artists: ['עברי לידר', 'שלמה ארצי', 'ריטה', 'אריאל זילבר'], keywords: ['אהבה', 'לב'] },
-    ar: { script: /[\u0600-\u06ff]/, artists: ['كاظم الساهر', 'وائل كفوري', 'إليسا', 'عبادي الجوهر'], keywords: ['حبيبي', 'قلبي'] },
-    hi: { script: /[\u0900-\u097f]/, artists: ['अरिजीत सिंह', 'श्रेया घोषाल', 'सोनू निगम', 'शान'], keywords: ['प्यार', 'दिल'] },
-    th: { script: /[\u0e00-\u0e7f]/, artists: ['เบิร์ด ธงไชย', 'ปาล์มมี่', 'นนท์ ธนนท์', 'สิงโต นำโชค'], keywords: ['รัก', 'ใจ'] },
-    en: { script: /[a-z]/, artists: ['Real Estate', 'Beach House', 'The Shins', 'Khruangbin'], keywords: ['summer', 'night'] },
+const PER_LANG = Number(process.argv[2]) || 4;
+const RANK_MIN = 60000, RANK_MAX = 450000, MAX_SECONDS = 900;
+// 検索言語/地域(ATV事前検証で使う。拡張本体のLANG/REGIONと同じ対応)。
+const HL_GL = {
+    ja: ['ja', 'JP'], ko: ['ko', 'KR'], 'zh-TW': ['zh-TW', 'TW'], 'zh-CN': ['zh-CN', 'US'],
+    en: ['en', 'US'], ru: ['ru', 'RU'], ar: ['ar', 'SA'], hi: ['hi', 'IN'], th: ['th', 'TH'],
+    el: ['el', 'GR'], he: ['he', 'IL'],
 };
-// 有名度の狙い: Deezerのrank(0-100万)。最大ヒット(70万超)を避けて中段を取る。
-const RANK_MIN = 60000, RANK_MAX = 450000, PER_LANG = 2, MAX_SECONDS = 900;
-// どの言語でも照合対象になりえない版違い・読み宗教文は最初から外す。
-const BAD = /live|ライブ|ライヴ|라이브|现场|現場|remix|리믹스|混音|remaster|instrumental|instrumentale|伴奏|karaoke|カラオケ|노래방|覆盖|翻唱|cover version|سورة|قرآن|quran|demo/i;
+const HL_OF = { ja: 'ja', ko: 'ko', zh: 'zh-TW', ru: 'ru', el: 'el', he: 'he', ar: 'ar', hi: 'hi', th: 'th', en: 'en' };
+const SCRIPTS = {
+    kana: /[\u3040-\u30ff]/, hangul: /[\uac00-\ud7af]/, han: /[\u3400-\u9fff\uf900-\ufaff]/,
+    cyrillic: /[\u0400-\u04ff]/, greek: /[\u0370-\u03ff]/, hebrew: /[\u0590-\u05ff]/,
+    arabic: /[\u0600-\u06ff]/, devanagari: /[\u0900-\u097f]/, thai: /[\u0e00-\u0e7f]/, latin: /[a-z]/,
+};
+const HL_KEY = { kana: 'ja', hangul: 'ko', han: 'zh', cyrillic: 'ru', greek: 'el', hebrew: 'he', arabic: 'ar', devanagari: 'hi', thai: 'th', latin: 'en' };
+// どの言語でも照合対象になりえない版違い(ライブ・アコースティック等)・宗教朗読は最初から外す。
+// 版違いの語彙は拡張本体のVERSIONSと重なるが、収集側は言語ごとの固有表記も含めて広めに弾く。
+const BAD = [
+    'live', 'ライブ', 'ライヴ', '라이브', '现场', '現場', 'remix', '리믹스', '混音', 'remaster',
+    'instrumental', 'instrumentale', '伴奏', 'karaoke', 'カラオケ', '노래방', '覆盖', '翻唱',
+    'cover version', 'سورة', 'قرآن', 'quran', 'demo', 'acoustic', 'акуст', 'unplugged',
+    'radio edit', 'instrumental version', 'ミード', '版', 'カバー', 'カヴァー', '커버', 'קאבר',
+    '\\bMR\\b',
+].join('|');
+const BAD_RE = new RegExp(BAD, 'i');
+// ATVに無いことが確認済みの曲(ISRC)を外すための扉。通常は空でよい。
+let SKIP_ISRC = new Set();
+try {
+    const local = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixture', 'sources.local.json'), 'utf8'));
+    SKIP_ISRC = new Set(local.skip_isrc || []);
+} catch (e) { /* なければ空 */ }
 
 function fold(text) { // ギリシャ等の合成文字・大文字を緩めて比較する。
     return String(text || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+// 拡張と同じ文字種の取り方(検証用の簡易版)。
+function letters(text) {
+    return fold(text).replace(/[^a-z0-9\u00c0-\u024f\u0370-\u06ff\u0900-\u097f\u0e00-\u0e7f\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff\uac00-\ud7af]/g, '');
+}
+
+function similarity(a, b) {
+    let row = [0];
+    for (let j = 1; j <= b.length; j++) row[j] = j;
+    for (let i = 0; i < a.length; i++) {
+        const next = [i + 1];
+        for (let j = 0; j < b.length; j++) {
+            next[j + 1] = Math.min(next[j] + 1, row[j + 1] + 1, row[j] + (a.charAt(i) === b.charAt(j) ? 0 : 1));
+        }
+        row = next;
+    }
+    return 1 - row[b.length] / Math.max(a.length, b.length, 1);
+}
+
+// ATV行のタイトルがストア側の曲名と同じと言えるか(包含か0.6以上の類似)。
+function sameTitle(rowTitle, storeTitle) {
+    const x = letters(rowTitle), y = letters(storeTitle);
+    if (!x || !y) return false;
+    if (x.includes(y) || y.includes(x)) return true;
+    return similarity(x, y) >= 0.6;
+}
+
+// ATV行のアーティスト列がストア側のアーティストと言えるか(拡張と同じ緩め方の簡易版)。
+function sameArtist(rowArtist, storeArtist) {
+    const c = letters(rowArtist), n = letters(storeArtist);
+    if (!c || !n) return false;
+    if (c === n) return true;
+    const min = /[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff\uac00-\ud7af]/.test(n) ? 2 : 4;
+    if (Math.min(c.length, n.length) >= min && (c.includes(n) || n.includes(c))) return true;
+    if (n.length >= 4 && !/^[a-z0-9]*$/.test(n)) { // 文字の多重集合が相手にすべて含まれる(語順の違い)
+        let pool = c, ok = true;
+        for (const ch of n) {
+            const at = pool.indexOf(ch);
+            if (at < 0) { ok = false; break; }
+            pool = pool.slice(0, at) + pool.slice(at + 1);
+        }
+        if (ok) return true;
+    }
+    return !/^[a-z0-9]*$/.test(n) && similarity(c, n) >= 0.6;
 }
 
 function getJson(url) {
@@ -39,21 +102,65 @@ function getJson(url) {
         .then(r => r.json());
 }
 
-function isBlank(text) { return text == null || text === ''; }
+// YouTube Musicの曲検索。ATV(公式カタログ)行の videoId・タイトル・秒を集める。
+async function atvRows(query, language) {
+    const [hl, gl] = HL_GL[HL_OF[language] || 'en'];
+    const res = await fetch('https://music.youtube.com/youtubei/v1/search?prettyPrint=false', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', origin: 'https://music.youtube.com', 'user-agent': 'myspoti-extension-fixture/1.0' },
+        body: JSON.stringify({
+            context: { client: { clientName: 'WEB_REMIX', clientVersion: '1.20251013.03.00', hl, gl } },
+            query, params: 'EgWKAQIIAWoKEAkQChAFEAMQBA%3D%3D',
+        }),
+    });
+    const data = await res.json();
+    const out = [];
+    (function visit(node) {
+        if (!node || typeof node !== 'object') return;
+        const row = node.musicResponsiveListItemRenderer;
+        if (row) {
+            const cols = row.flexColumns || [];
+            const run = i => ((((cols[i] || {}).musicResponsiveListItemFlexColumnRenderer || {}).text || {}).runs || []);
+            const first = run(0)[0] || {};
+            const watch = (first.navigationEndpoint || {}).watchEndpoint || {};
+            const cfg = ((watch.watchEndpointMusicSupportedConfigs || {}).watchEndpointMusicConfig || {}).musicVideoType;
+            const id = (row.playlistItemData || {}).videoId || watch.videoId || '';
+            let secs = 0; const names = [];
+            run(1).forEach(x => {
+                const type = ((((x.navigationEndpoint || {}).browseEndpoint || {}).browseEndpointContextSupportedConfigs || {}).browseEndpointContextMusicConfig || {}).pageType;
+                if (type === 'MUSIC_PAGE_TYPE_ARTIST' && x.text) names.push(x.text);
+                if (/^\d{1,3}:\d{2}(:\d{2})?$/.test(x.text || '')) secs = x.text.split(':').reduce((n, s) => n * 60 + Number(s), 0);
+            });
+            const bare = run(1).filter(x => !x.navigationEndpoint && x.text && !/[•:]/.test(x.text)).map(x => x.text);
+            if (cfg === 'MUSIC_VIDEO_TYPE_ATV' && id && secs > 0) out.push({ id, title: run(0).map(x => x.text || '').join(''), secs, a: names.join('|') || bare.join('|') });
+        }
+        Object.keys(node).forEach(k => visit(node[k]));
+    })(data);
+    return out;
+}
 
-async function usable(row, spec, requireArtist, probe) {
+async function usable(row, spec, requireArtist, probe, language) {
     const title = row.title || row.title_short || '';
     const who = (row.artist || {}).name || '';
     const rank = row.rank || 0;
-    if (!spec.script.test(title) || !spec.script.test(who)) return null; // 現地語表記でない
-    if (BAD.test(title) || BAD.test(who)) return null;
+    if (!spec.script.test(title)) return null; // 現地語表記でない
+    if (spec.artist_script !== false && !spec.script.test(who)) return null;
+    if (BAD_RE.test(title) || BAD_RE.test(who)) return null;
     if (!row.duration || row.duration < 60 || row.duration > MAX_SECONDS || rank < RANK_MIN || rank > RANK_MAX) return null;
     if (requireArtist && !fold(who).includes(fold(probe)) && !fold(probe).includes(fold(who))) return null;
     try {
         const detail = await getJson('https://api.deezer.com/track/' + row.id);
-        if (isBlank(detail.isrc) || !detail.duration || detail.duration > MAX_SECONDS) return null;
-        if (BAD.test(detail.title || '')) return null;
-        return { label: row.title_short ? undefined : undefined, track: { title, artist: who, durationMs: detail.duration * 1000, isrc: detail.isrc, rank } };
+        if (!detail.isrc || SKIP_ISRC.has(detail.isrc)) return null;
+        if (!detail.duration || detail.duration > MAX_SECONDS) return null;
+        if (BAD_RE.test(detail.title || '')) return null;
+        // YouTube Musicの公式(ATV)カタログに、ストアの尺(±3秒)・曲名・アーティストの
+        // すべてが合う行が無い曲は「どのみち照合できない」ため、フィクスチャから除外する。
+        // 版違いの語(cover等)がタイトルに入った行は公式行でも対象にしない。
+        const rows = await atvRows(title + ' ' + who, language);
+        const atv = rows.find(x => Math.abs(x.secs * 1000 - detail.duration * 1000) <= 3000 &&
+            !BAD_RE.test(x.title) && sameTitle(x.title, title) && sameArtist(x.a, who));
+        if (!atv) { console.log('  - skip (no ATV listing near ' + detail.duration + 's): ' + title + ' / ' + who); return null; }
+        return { title, artist: who, durationMs: detail.duration * 1000, isrc: detail.isrc, rank, atv: atv.id + ' ' + atv.secs + 's' };
     } catch (e) { return null; }
 }
 
@@ -62,10 +169,10 @@ async function pick(language, spec) {
     const want = async (rows, requireArtist, probe) => {
         for (const row of ((rows || {}).data || [])) {
             if (out.length >= PER_LANG) return;
-            const got = await usable(row, spec, requireArtist, probe);
-            if (!got || out.some(x => x.title === got.track.title)) continue;
-            out.push(got.track);
-            console.log('  + ' + language + '  ' + got.track.title + ' / ' + got.track.artist + '  ' + got.track.durationMs / 1000 + 's  rank ' + got.track.rank + '  ' + got.track.isrc);
+            const got = await usable(row, spec, requireArtist, probe, language);
+            if (!got || out.some(x => x.title === got.title)) continue;
+            out.push(got);
+            console.log('  + ' + language + '  ' + got.title + ' / ' + got.artist + '  ' + got.durationMs / 1000 + 's  rank ' + got.rank + '  ' + got.isrc + '  atv ' + got.atv);
         }
     };
     for (const artist of (spec.artists || [])) {
@@ -80,11 +187,23 @@ async function pick(language, spec) {
 }
 
 (async () => {
+    const sourcesFile = path.join(__dirname, 'fixture', 'sources.local.json');
+    let sources;
+    try {
+        sources = JSON.parse(fs.readFileSync(sourcesFile, 'utf8'));
+    } catch (e) {
+        console.error('fixture/sources.local.json がありません。形式は冒頭のコメントを参照。');
+        process.exit(1);
+    }
     const all = [];
-    for (const [language, spec] of Object.entries(LANG)) {
-        const picked = await pick(language, spec);
+    for (const [name, spec] of Object.entries(sources)) {
+        if (name === 'skip_isrc') continue;
+        const script = SCRIPTS[spec.script];
+        if (!script) { console.error('!! unknown script: ' + name + ' (' + spec.script + ')'); continue; }
+        const language = HL_KEY[spec.script] || name;
+        const picked = await pick(language, { script, artists: spec.artists, keywords: spec.keywords });
         picked.forEach(t => all.push({ label: language + ':' + t.title.slice(0, 24) + ' / ' + t.artist.slice(0, 20), title: t.title, artist: t.artist, durationMs: t.durationMs, isrc: t.isrc }));
-        if (!picked.length) console.error('!! no fixture for ' + language);
+        if (!picked.length) console.error('!! no fixture for ' + name);
         await new Promise(r => setTimeout(r, 400)); // 丁寧な間隔
     }
     const file = path.join(__dirname, 'fixture', 'tracks.json');
