@@ -1,8 +1,8 @@
 {
   "id": "net.yexe.myspoti.youtubemusic",
   "name": "YouTube Music Download Helper",
-  "version": "1.0.4",
-  "versionCode": 11,
+  "version": "1.0.5",
+  "versionCode": 12,
   "author": "y-exe",
   "description": "Matches a track's title, artist and length against YouTube Music's official catalog — searching in the song's own script — and saves its original AAC/M4A audio.",
   "homepage": "https://github.com/y-exe/myspoti-youtube-music",
@@ -13,7 +13,7 @@
     "multilingual"
   ],
   "minAppVersion": "2.0.2-beta.4",
-  "changelog": "1.0.4: Multilingual matching fixes and verification — production notes and alias parentheses in official titles/artist columns no longer break the comparison, Arabic spelling variants are folded, a store title contained in the YouTube title counts as matched, and a batch no longer writes songs off as not-found when the rate ledger eats the hook budget (the app retries them later). Audio URLs that answer a redirect (HTTP 302) are followed to the final host instead of being refused. Matching is verified song-by-song across every supported language with a PC regression harness.",
+  "changelog": "1.0.5: The interface, logs and status lines follow Myspoti's display language (63 languages). Rate-limit waits are answered as retryable instead of writing a batch off, matching adds an album-name ranking nudge and a score penalty for \"(Remastered …)\" notes, and the search covers fifteen more languages (Bengali, Tamil, Telugu, Persian, Urdu, …).",
   "actions": [
     {
       "name": "download.source",
@@ -28,15 +28,5 @@
       ],
       "why": "Search songs, get audio URLs, check them"
     }
-  ],
-  "translations": {
-    "ja": {
-      "description": "曲名・アーティスト・長さを照合し、YouTube Musicの公式楽曲をAACで保存します。曲の表記言語(日本語・韓国語・中国語・ロシア語など)に沿って検索します。",
-      "changelog": "1.0.4: 多言語照合の修正と検証 — 公式側タイトル・アーティスト列の注記や別名の括弧が比較を壊さないようにし、アラビア語の表記ゆれ(ハムザ・ى/ي・ة/ه)を吸収。ストアの曲名が公式タイトルに含まれる場合は一致として扱い、レート制限でフック予算を使い切った曲は「見つからない」ではなく「後で再試行」。リダイレクト(HTTP 302)で答える音源URLも最終ホストまで追跡して保存できるようにしました。PC回帰ハーネスで対応する全言語の実在曲を検証。",
-      "actions": {
-        "download.source": "YouTube Musicの公式楽曲からダウンロード音源を探す",
-        "network": "楽曲の検索、音源URLの取得、有効性の確認"
-      }
-    }
-  }
+  ]
 }

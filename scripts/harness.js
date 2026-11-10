@@ -3,9 +3,11 @@
  * 照合(download-source)を検証する。実機の音源取得(Range検証)以外を同じコードで回すため、
  * 言語別の照合結果の回帰テストに使う。
  *
- *     node scripts/harness.js [tracks.json] [--full]
+ *     node scripts/harness.js [tracks.json] [--full] [--locale=pt-BR] [--no-i18n]
  *
  * --full: debug://matchで打ち切らず、player呼び出しとRange検証まで通す(実ネット要)。
+ * --locale: myspoti.localeの値(ログやエラー文言の検証用。既定はen_US)。
+ * --no-i18n: i18n.jsonを差し込まず英語のみで走らせる。
  * Copyright (C) 2026 y-exe
  * SPDX-License-Identifier: GPL-3.0-only
  */
@@ -13,11 +15,15 @@
 const fs = require('fs');
 const path = require('path');
 const cp = require('child_process');
+const os = require('os');
+const i18n = require('./i18n');
 
 const FULL = process.argv.includes('--full');
 const onlyArg = process.argv.find(a => a.startsWith('--only='));
 const only = onlyArg ? onlyArg.slice('--only='.length) : '';
-const fixture = process.argv.slice(2).filter(a => a !== '--full' && !a.startsWith('--only='))[0] || path.join(__dirname, 'fixture', 'tracks.json');
+const localeArg = process.argv.find(a => a.startsWith('--locale='));
+const LOCALE = localeArg ? localeArg.slice('--locale='.length) : 'en_US';
+const fixture = process.argv.slice(2).filter(a => a !== '--full' && !a.startsWith('--only=') && !a.startsWith('--locale=') && a !== '--no-i18n')[0] || path.join(__dirname, 'fixture', 'tracks.json');
 
 // --- myspotiスタブ -----------------------------------------------------------
 // httpは実ネット(同期ブリッジ)。本体と同じくオブジェクトを渡し、ok/status/headers/jsonを持つ。
@@ -42,7 +48,9 @@ function httpCall(options) {
 
 let requests = 0;
 globalThis.myspoti = {
-    locale: 'en_US',
+    locale: LOCALE,
+    // 実機と同じくresults機能あり(レート制限時はthrowではなくoutcomeで答える)。
+    features: ['results'],
     // 'match': fileForで照合検証として打ち切る。'full': 取得まで通す。note()はどちらでも出る。
     debug: FULL ? 'full' : 'match',
     log: message => console.log('  [ext] ' + message),
@@ -70,20 +78,32 @@ globalThis.myspoti = {
 };
 
 const handlers = {};
-// '#!/usr/bin/env'-shebangのないmain.jsをそのままrequire(myspotiはグローバルで見える)。
-require(path.join(__dirname, '..', 'main.js'));
+// pack.jsと同じ方法でi18n.jsonをmain.jsへ差し込み、そのテキストを読み込む(myspotiはグローバルで見える)。
+const root = path.join(__dirname, '..');
+let source;
+if (process.argv.includes('--no-i18n')) {
+    // マーカーのまま(MESSAGES_I18N=null)でも動く: すべての文言が英語に落ちる。
+    source = fs.readFileSync(path.join(root, 'main.js'), 'utf8').replace(/\r\n/g, '\n');
+} else {
+    if (!i18n.exists(root)) { console.error('i18n.json is missing'); process.exit(1); }
+    source = i18n.mainSource(root, i18n.load(root));
+}
+const loaded = path.join(os.tmpdir(), 'myspoti-ext-harness-main.js');
+fs.writeFileSync(loaded, source);
+require(loaded);
+fs.rmSync(loaded, { force: true });
 
 // --- 実行 --------------------------------------------------------------------
 const tracks = JSON.parse(fs.readFileSync(fixture, 'utf8'));
-const source = handlers['download-source'];
-if (!source) { console.error('download-source is not registered'); process.exit(1); }
+const hook = handlers['download-source'];
+if (!hook) { console.error('download-source is not registered'); process.exit(1); }
 
 const results = [];
 for (const t of tracks) {
     if (only && !(t.label + ' ' + t.title + ' ' + t.artist).toUpperCase().includes(only.toUpperCase())) continue;
     let answer;
     try {
-        answer = source(t);
+        answer = hook(t);
     } catch (e) {
         answer = { threw: String(e && e.message || e) };
     }

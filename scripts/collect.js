@@ -8,7 +8,9 @@
  * sources.local.json の形式:
  *     { "ja": { "script": "kana",   "artists": ["…"], "keywords": ["…"] },
  *       "en": { "script": "latin",  "artists": ["…"], "keywords": ["…"] }, … }
- * script は kana/hangul/han/cyrillic/greek/hebrew/arabic/devanagari/thai/latin のいずれか。
+ * script は kana/hangul/han/cyrillic/greek/hebrew/arabic/devanagari/thai/latin のほか、
+ * bengali/gurmukhi/gujarati/tamil/telugu/kannada/malayalam/lao/khmer/myanmar/georgian/
+ * armenian/ethiopic/persian/urdu(アラビア文字からの分離)を取る。
  * Copyright (C) 2026 y-exe
  * SPDX-License-Identifier: GPL-3.0-only
  */
@@ -22,15 +24,31 @@ const RANK_MIN = 60000, RANK_MAX = 450000, MAX_SECONDS = 900;
 const HL_GL = {
     ja: ['ja', 'JP'], ko: ['ko', 'KR'], 'zh-TW': ['zh-TW', 'TW'], 'zh-CN': ['zh-CN', 'US'],
     en: ['en', 'US'], ru: ['ru', 'RU'], ar: ['ar', 'SA'], hi: ['hi', 'IN'], th: ['th', 'TH'],
-    el: ['el', 'GR'], he: ['he', 'IL'],
+    el: ['el', 'GR'], he: ['he', 'IL'], bn: ['bn', 'IN'], ta: ['ta', 'IN'], te: ['te', 'IN'],
+    kn: ['kn', 'IN'], ml: ['ml', 'IN'], gu: ['gu', 'IN'], pa: ['pa', 'IN'], fa: ['fa', 'US'],
+    ur: ['ur', 'PK'], lo: ['lo', 'LA'], my: ['my', 'MM'], km: ['km', 'KH'], ka: ['ka', 'GE'],
+    hy: ['hy', 'AM'], am: ['am', 'ET'],
 };
-const HL_OF = { ja: 'ja', ko: 'ko', zh: 'zh-TW', ru: 'ru', el: 'el', he: 'he', ar: 'ar', hi: 'hi', th: 'th', en: 'en' };
+const HL_OF = { ja: 'ja', ko: 'ko', zh: 'zh-TW', ru: 'ru', el: 'el', he: 'he', ar: 'ar', hi: 'hi', th: 'th',
+    en: 'en', bn: 'bn', ta: 'ta', te: 'te', kn: 'kn', ml: 'ml', gu: 'gu', pa: 'pa', fa: 'fa',
+    ur: 'ur', lo: 'lo', my: 'my', km: 'km', ka: 'ka', hy: 'hy', am: 'am' };
 const SCRIPTS = {
     kana: /[\u3040-\u30ff]/, hangul: /[\uac00-\ud7af]/, han: /[\u3400-\u9fff\uf900-\ufaff]/,
     cyrillic: /[\u0400-\u04ff]/, greek: /[\u0370-\u03ff]/, hebrew: /[\u0590-\u05ff]/,
     arabic: /[\u0600-\u06ff]/, devanagari: /[\u0900-\u097f]/, thai: /[\u0e00-\u0e7f]/, latin: /[a-z]/,
+    bengali: /[\u0980-\u09ff]/, gurmukhi: /[\u0a00-\u0a7f]/, gujarati: /[\u0a80-\u0aff]/,
+    tamil: /[\u0b80-\u0bff]/, telugu: /[\u0c00-\u0c7f]/, kannada: /[\u0c80-\u0cff]/,
+    malayalam: /[\u0d00-\u0d7f]/, lao: /[\u0e80-\u0eff]/, khmer: /[\u1780-\u17ff]/,
+    myanmar: /[\u1000-\u109f]/, georgian: /[\u10a0-\u10ff]/, armenian: /[\u0530-\u058f]/,
+    ethiopic: /[\u1200-\u137f]/,
+    // ペルシャ語・ウルドゥー語はアラビア文字の中の固有文字で分ける(拡張本体と同じ)。
+    persian: /[\u067e\u0686\u0698\u06af]/, urdu: /[\u0679\u0688\u0691\u06ba\u06be\u06d2]/,
 };
-const HL_KEY = { kana: 'ja', hangul: 'ko', han: 'zh', cyrillic: 'ru', greek: 'el', hebrew: 'he', arabic: 'ar', devanagari: 'hi', thai: 'th', latin: 'en' };
+const HL_KEY = { kana: 'ja', hangul: 'ko', han: 'zh', cyrillic: 'ru', greek: 'el', hebrew: 'he',
+    arabic: 'ar', devanagari: 'hi', thai: 'th', latin: 'en', bengali: 'bn', gurmukhi: 'pa',
+    gujarati: 'gu', tamil: 'ta', telugu: 'te', kannada: 'kn', malayalam: 'ml', lao: 'lo',
+    khmer: 'km', myanmar: 'my', georgian: 'ka', armenian: 'hy', ethiopic: 'am',
+    persian: 'fa', urdu: 'ur' };
 // どの言語でも照合対象になりえない版違い(ライブ・アコースティック等)・宗教朗読は最初から外す。
 // 版違いの語彙は拡張本体のVERSIONSと重なるが、収集側は言語ごとの固有表記も含めて広めに弾く。
 const BAD = [
@@ -54,7 +72,7 @@ function fold(text) { // ギリシャ等の合成文字・大文字を緩めて�
 
 // 拡張と同じ文字種の取り方(検証用の簡易版)。
 function letters(text) {
-    return fold(text).replace(/[^a-z0-9\u00c0-\u024f\u0370-\u06ff\u0900-\u097f\u0e00-\u0e7f\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff\uac00-\ud7af]/g, '');
+    return fold(text).replace(/[^a-z0-9\u00c0-\u024f\u0370-\u06ff\u0900-\u097f\u0980-\u09ff\u0a00-\u0a7f\u0a80-\u0aff\u0b00-\u0b7f\u0b80-\u0bff\u0c00-\u0c7f\u0c80-\u0cff\u0d00-\u0d7f\u0e00-\u0e7f\u0e80-\u0eff\u1000-\u109f\u10a0-\u10ff\u1200-\u137f\u1780-\u17ff\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff\uac00-\ud7af]/g, '');
 }
 
 function similarity(a, b) {

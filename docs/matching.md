@@ -29,7 +29,11 @@ candidate. Everything happens inside Myspoti's 25 s hook budget.
 | kana | `ja`, `en` | JP |
 | hangul | `ko`, `en` | KR |
 | han (no kana) | `zh-TW`, `zh-CN`, `en` | TW, then US |
-| Cyrillic / Greek / Hebrew / Arabic / Devanagari / Thai | own, `en` | RU / GR / IL / SA / IN / TH |
+| Cyrillic / Greek / Hebrew / Armenian / Devanagari / Thai | own, `en` | RU / GR / IL / HY / IN / TH |
+| Persian / Urdu (their own letters pick them out of the Arabic script) | `fa` / `ur`, `en` | US / PK |
+| Bengali / Gurmukhi / Gujarati / Tamil / Telugu / Kannada / Malayalam | own, `en` | IN |
+| Lao / Khmer / Burmese / Georgian / Ethiopic | own, `en` | LA / KH / MM / GE / ET |
+| Arabic (no Persian or Urdu letters) | `ar`, `en` | SA |
 | Latin only | `en` | US |
 
 ## Gates
@@ -37,10 +41,13 @@ candidate. Everything happens inside Myspoti's 25 s hook budget.
 - **Length window:** −5 s / +15 s around the track's `durationMs` — the same window
   Myspoti's own download check uses. Applied to the search row *and* to the resolved
   stream's `lengthSeconds`.
-- **Version words refused:** `live`, `cover`, `remix`, `remaster(ed)`, `acoustic`,
+- **Version words refused:** `live`, `cover`, `remix`, `acoustic`,
   `instrumental`, `karaoke`, `slowed`, `sped up`, `nightcore`, `reverb`, `8d`, plus
   the same words in Japanese, Korean, Chinese and Russian. Refused only when the
-  track's own title does not contain the same word.
+  track's own title does not contain the same word. A `remaster(ed)` note is *not*
+  refused: official master uploads often carry "(Remastered 2011)" in their title,
+  so each unreflected occurrence costs 0.08 of the score instead (taken from
+  spotDL's penalty approach; see [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)).
 - **Title similarity ≥ 0.85** (Levenshtein over letters-only, case- and
   width-normalized). Chinese uses 0.75: stores drift between simplified and
   traditional glyphs. A store title that appears verbatim inside the YouTube title
@@ -53,8 +60,13 @@ candidate. Everything happens inside Myspoti's 25 s hook budget.
   ≥ 0.65, because stores write the same artist in simplified and traditional glyphs.
 - **Arabic folding:** hamza seat variants, ى/ي, ة/ه, tatweel and diacritics are folded
   before any comparison — stores and YouTube disagree on them constantly.
-- **Score** = title × 0.6 + artist × 0.25 + length closeness × 0.15. The best total
-  wins; ties resolve toward higher bitrate at fetch time.
+- **Score** = title × 0.6 + artist × 0.25 + length closeness × 0.15, plus an album
+  adjustment: the search row's album name is compared with the track's album (the
+  "- Single"/"- EP" suffix dropped first), and a similarity above 0.6 moves the score
+  by up to ±0.02 — enough to order candidates that already passed every gate, never
+  enough to change who passes (the same signal spotDL and spotify_to_ytmusic use for
+  their official-catalog results). The best total wins; ties resolve toward higher
+  bitrate at fetch time.
 
 ## Audio resolution
 
@@ -80,15 +92,17 @@ Unexpected non-network errors stay fail-open, because they say nothing about rea
 
 Myspoti refuses an extension's request beyond 120/minute (sliding window), and a batch
 of downloads otherwise trips it and fails every remaining search. The extension keeps
-its own ledger: 90 requests/minute of its own, waits in ≤ 1.8 s chunks inside the hook
-budget (at most ~13 s), and when the app still answers "more than 120 requests in a
-minute" it throws "rate limited" — the app treats that as *not answered now*, so the
-song is retried later instead of being written off as not found. The same answer is
-thrown when the budget runs out while the ledger is still hot: waiting most of the
-budget and then returning nothing would otherwise label a perfectly matchable song
-*not found*, which is how batch downloads used to cascade into a wall of failures.
-The `status` probe is skipped while the ledger is hot so it never consumes a
-download's quota.
+its own ledger: 90 requests/minute of its own, waiting in ≤ 1.8 s chunks inside the
+hook budget. When the app still answers "more than 120 requests in a minute" (its
+ledger fills earlier — it also counts calls the extension cannot see), the hook
+answers **`{outcome: rate-limited, retryAfterMs}`** on apps with the `results`
+feature: the app sets the source aside for 30 s–15 min and the song stays *failed,
+retriable*, instead of being written off as not found. A search that runs out of hook
+budget mid-way answers `{outcome: network}` — same effect: waiting most of the budget
+and returning nothing would otherwise label a perfectly matchable song *not found*,
+which is how batch downloads used to cascade into a wall of failures. On apps without
+the `results` feature the extension throws "rate limited" as before. The `status`
+probe is skipped while the ledger is hot so it never consumes a download's quota.
 
 ## Regression harness
 

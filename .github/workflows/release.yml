@@ -27,6 +27,8 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+      - name: Check translations (i18n.json ↔ main.js ↔ manifest.json)
+        run: node extension/scripts/check-i18n.js
       - name: Check with upstream SDK
         working-directory: sdk/base
         run: |

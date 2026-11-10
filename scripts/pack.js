@@ -12,6 +12,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const path = require('path');
 const zlib = require('zlib');
+const i18n = require('./i18n');
 
 const KEPT = ['icon.png', 'LICENSE', 'README.md'];
 const ROOT = path.dirname(__dirname);
@@ -66,11 +67,17 @@ function pack(names, read) {
 function main() {
     const outPath = process.argv[2] || path.join(ROOT, 'extension.zip');
     const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'manifest.json'), 'utf8'));
+    // i18n.json: ユーザーに見える文の全言語訳。パッケージには余分なファイルを入れられないので、
+    // manifest.jsonへはtranslationsとして統合し、main.jsへはMESSAGES_I18N行として差し込む。
+    const i18nData = i18n.exists(ROOT) ? i18n.load(ROOT) : null;
+    const manifestOut = i18nData ? i18n.manifest(ROOT, i18nData) : manifest;
     const names = ['manifest.json', manifest.main || 'main.js'];
     if (manifest.icon) names.push(manifest.icon);
     names.push(...KEPT.filter(n => fs.existsSync(path.join(ROOT, n))));
     const seen = new Set();
     const read = name => {
+        if (name === 'manifest.json') return Buffer.from(JSON.stringify(manifestOut, null, 2) + '\n', 'utf8');
+        if (name === (manifest.main || 'main.js') && i18nData) return Buffer.from(i18n.mainSource(ROOT, i18nData), 'utf8');
         if (!fs.existsSync(path.join(ROOT, name))) { console.error(name + ' is missing'); process.exit(1); }
         const data = fs.readFileSync(path.join(ROOT, name));
         // テキストはLFに正規化し、WindowsとCIで同一バイトにする。
@@ -78,7 +85,8 @@ function main() {
     };
     const zip = pack(names.filter(n => !seen.has(n) && seen.add(n)), read);
     fs.writeFileSync(outPath, zip);
-    console.log(outPath + '  ' + seen.size + ' files  sha256 ' + crypto.createHash('sha256').update(zip).digest('hex'));
+    const langs = i18nData ? Object.keys(i18nData.manifest).length + ' languages' : 'no i18n.json';
+    console.log(outPath + '  ' + seen.size + ' files  ' + langs + '  sha256 ' + crypto.createHash('sha256').update(zip).digest('hex'));
 }
 
 main();
