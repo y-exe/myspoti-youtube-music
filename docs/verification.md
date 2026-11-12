@@ -17,7 +17,7 @@ anonymized; byte counts and durations are unchanged.
 3. Compared saved bytes with the candidate's `contentLength`; checked container,
    duration and codec with ffprobe.
 4. Decoded everything with `ffmpeg -xerror`, so any corrupt frame aborts the run.
-5. Re-fetched one track the way Myspoti's own downloader does — two 4 MiB range
+5. Re-fetched one track the way Orpheon's own downloader does — two 4 MiB range
    requests joined — and checked every response size against its requested range.
 
 ## Results
@@ -40,7 +40,7 @@ before any candidate is offered.
 
 ## Not covered
 
-- Installation, saving, encryption and playback in Myspoti's own UI are verified on
+- Installation, saving, encryption and playback in Orpheon's own UI are verified on
   devices separately, not in this record.
 - Not an exhaustive success-rate study: one corpus track returned no candidate under
   strict matching, which does not prove it is absent from YouTube Music.

@@ -6,7 +6,7 @@
  * 確認すること:
  *  - MESSAGES(main.js)の全idがi18n.jsonにあり、その逆もない(未知id・訳漏れの検出)
  *  - 全idに英語(基準文)がある
- *  - 本体(Myspoti)が持つ全言語について、T()が英語に落ちない(差し込み後の実行で確認)
+ *  - 本体(Orpheon)が持つ全言語について、T()が英語に落ちない(差し込み後の実行で確認)
  *  - 統合後のmanifestのtranslationsが本体の規則内(80言語以下・文字数制限・アクション名)
  * Copyright (C) 2026 y-exe
  * SPDX-License-Identifier: GPL-3.0-only
@@ -20,7 +20,7 @@ const i18n = require('./i18n');
 const ROOT = path.join(__dirname, '..');
 const problems = [];
 
-// 本体(Myspoti)が持つ言語。enはmain.js・manifest.jsonの基準文。
+// 本体(Orpheon)が持つ言語。enはmain.js・manifest.jsonの基準文。
 const LANGS = ['ja', 'ko', 'zh', 'zh-HK', 'zh-TW', 'es', 'pt', 'pt-BR', 'fr', 'de', 'it', 'nl',
     'ca', 'gl', 'eu', 'pl', 'cs', 'sk', 'sl', 'hr', 'bs', 'sr', 'bg', 'mk', 'lt', 'lv', 'et',
     'hu', 'ro', 'da', 'nb', 'sv', 'is', 'fi', 'ru', 'uk', 'tr', 'el', 'he', 'ar', 'fa', 'ur',

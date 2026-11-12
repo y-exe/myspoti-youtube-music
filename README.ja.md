@@ -3,11 +3,11 @@
 <h1>YouTube Music Download Helper</h1>
 
 [![License GPL v3](https://img.shields.io/badge/License-GPL--3.0-green?style=flat-square)](LICENSE)
-[![Myspoti](https://img.shields.io/badge/Myspoti-2.0.2%2B-blue?style=flat-square)](https://github.com/kota-zo/myspoti)
+[![Orpheon](https://img.shields.io/badge/Orpheon-1.0.0%2B-blue?style=flat-square)](https://github.com/kota-zo/Orpheon)
 [![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black)](main.js)
-[![Category](https://img.shields.io/badge/store-downloads-0e7690?style=flat-square)](https://github.com/kota-zo/myspoti)
+[![Category](https://img.shields.io/badge/store-tools-0e7690?style=flat-square)](https://github.com/kota-zo/Orpheon)
 
-曲の公式音源をYouTube Musicで探し、元のAAC/M4Aを[Myspoti](https://github.com/kota-zo/myspoti)に渡す拡張機能。
+曲の公式音源をYouTube Musicで探し、元のAAC/M4Aを[Orpheon](https://github.com/kota-zo/Orpheon)(旧Myspoti)に渡す拡張機能。
 ダウンロード・保存・再生はすべて本体が行います。フォーク不要・外部サーバー不要。
 
 [English](README.md) · 日本語
@@ -25,11 +25,11 @@
 
 ## インストール
 
-1. **ストア**: Myspotiの拡張ストアで *YouTube Music Download Helper* を探す(topic `myspoti-extension`)。
+1. **ストア**: Orpheonの拡張ストアで *YouTube Music Download Helper* を探す(topic `myspoti-extension`)。
 2. **アドレスから**: 設定 → 拡張機能 → インストール → *アドレスからインストール* → `https://github.com/y-exe/myspoti-youtube-music`。
 3. **ファイルから**: [最新リリース](https://github.com/y-exe/myspoti-youtube-music/releases/latest)の `extension.zip`(または `node scripts/pack.js` でビルド)を端末に入れ、*ファイルからインストール*。
 
-Myspoti 2.0.2-beta.4 以降が必要です。ダウンロード・保存・暗号化はすべて本体側で行われ、拡張は音源候補を返すだけです。
+Orpheon 1.0.0-beta.1 以降が必要です(Myspoti 2.0.2-beta.4 以降でも動作します)。ダウンロード・保存・暗号化はすべて本体側で行われ、拡張は音源候補を返すだけです。
 
 ## 制限
 
@@ -40,7 +40,7 @@ Myspoti 2.0.2-beta.4 以降が必要です。ダウンロード・保存・暗�
 
 ## 開発
 
-拡張本体はRhinoで動くプレーンなJavaScript(ビルド不要)。ユーザーが読むすべての文字 — ストアの説明文・インストール時の理由・ログや状態表示の文 — は本体の表示言語に従い、`i18n.json` に63言語分を収録しています(本体が持つ69の言語タグすべてを網羅。繁体字中国語とブラジルポルトガル語は独立訳、他の地域変体は基言語へ、最後は英語に落ちます。英語はコード内に基準文として置いています)。Myspotiはパッケージに余分なファイルを許さないため、`pack.js` がパッケージ化のときに `i18n.json` を `main.js` と `manifest.json` へ統合し、PCハーネスも同じ方法で差し込んでから読み込みます。リリースノートは英語と日本語で書きます。パッケージングはNodeで行います。
+拡張本体はRhinoで動くプレーンなJavaScript(ビルド不要)。ユーザーが読むすべての文字 — ストアの説明文・インストール時の理由・ログや状態表示の文 — は本体の表示言語に従い、`i18n.json` に63言語分を収録しています(本体が持つ69の言語タグすべてを網羅。繁体字中国語とブラジルポルトガル語は独立訳、他の地域変体は基言語へ、最後は英語に落ちます。英語はコード内に基準文として置いています)。Orpheonはパッケージに余分なファイルを許さないため、`pack.js` がパッケージ化のときに `i18n.json` を `main.js` と `manifest.json` へ統合し、PCハーネスも同じ方法で差し込んでから読み込みます。リリースノートは英語と日本語で書きます。パッケージングはNodeで行います。
 
 ```powershell
 node scripts/pack.js          # → extension.zip(決定的バイト列・LF正規化)
@@ -53,7 +53,7 @@ CIは公式SDKの `check` とスモークテストを実行し、`manifest.json`
 
 ## 参考・ライセンス
 
-音源はYouTube Musicの公式カタログから、Webプレイヤーと同じ公開 `youtubei` エンドポイント経由でのみ取得します。復号は行わず、DRM音源はスキップ。本体のレート制限は回避せず従います。Myspoti・YouTube・Googleとは無関係です。
+音源はYouTube Musicの公式カタログから、Webプレイヤーと同じ公開 `youtubei` エンドポイント経由でのみ取得します。復号は行わず、DRM音源はスキップ。本体のレート制限は回避せず従います。Orpheon(旧Myspoti)・YouTube・Googleとは無関係です。
 
 全体を[GPL-3.0](LICENSE)とします。構成とパッケージングスクリプトは [kota-zo/myspoti-extension-template](https://github.com/kota-zo/myspoti-extension-template)(MIT)に準拠。照合基準は私の[Myspotiフォーク](https://github.com/y-exe/myspoti)から採用し、アルバム名による順位付けとリマスター表記の減点は [spotDL](https://github.com/spotDL/spotify-downloader) と [spotify_to_ytmusic](https://github.com/sigma67/spotify_to_ytmusic) から取り入れました。各プロジェクトから取り込んだ内容とライセンスは [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) にまとめています。
 

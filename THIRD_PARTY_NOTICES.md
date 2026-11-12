@@ -80,4 +80,4 @@ ytmusicapi and myspoti-extension-template:
 > WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 This extension as a whole remains GPL-3.0 (see LICENSE). Nothing here is affiliated
-with, endorsed by or connected to Myspoti, Spotify, YouTube or Google.
+with, endorsed by or connected to Orpheon (formerly Myspoti), Spotify, YouTube or Google.

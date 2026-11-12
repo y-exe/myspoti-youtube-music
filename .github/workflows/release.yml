@@ -19,7 +19,7 @@ jobs:
           path: extension
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          repository: kota-zo/myspoti
+          repository: kota-zo/Orpheon
           ref: 5b8754d5eeeb5755aa7095744239910ffc2de8db
           path: sdk
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6

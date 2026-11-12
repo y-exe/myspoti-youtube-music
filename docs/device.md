@@ -1,6 +1,6 @@
 # Verifying on a device
 
-The PC harness replays search and matching, but only a device shows what Myspoti does
+The PC harness replays search and matching, but only a device shows what Orpheon does
 with the answer. Two paths exist: the extension store / *Install from an address*
 (which fetches this repo), or *Install from a file* with `extension.zip` from a
 [release](https://github.com/y-exe/myspoti-youtube-music/releases/latest).

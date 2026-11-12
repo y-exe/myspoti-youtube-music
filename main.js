@@ -1,4 +1,4 @@
-/* YouTube Music Download Helper — Myspoti向けdownload-source拡張
+/* YouTube Music Download Helper — Orpheon(旧Myspoti)向けdownload-source拡張
  * Copyright (C) 2026 y-exe
  * SPDX-License-Identifier: GPL-3.0-only
  * 照合の基準は私のMyspotiフォークから、アルバム加減・リマスター減点の発想はspotDLから

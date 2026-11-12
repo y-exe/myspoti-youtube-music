@@ -1,6 +1,6 @@
 # Rhino library survey
 
-Question: could an existing YouTube downloader library run inside Myspoti's extension
+Question: could an existing YouTube downloader library run inside Orpheon's extension
 sandbox (Rhino 1.8.1), so the extension would not need its own request code?
 
 Answer (2026-10-26): **no library fits as-is.** YouTube.js can be made to *load* after
@@ -48,7 +48,7 @@ solved by the port. Nothing of it is included in `main.js` or the package.
 
 ## Primary sources
 
-- [Myspoti extension API and runtime](https://github.com/kota-zo/myspoti/blob/main/docs/extensions/API.md)
+- [Orpheon extension API and runtime](https://github.com/kota-zo/Orpheon/blob/main/docs/extensions/API.md)
 - [YouTube.js runtime and custom interpreters](https://ytjs.dev/guide/getting-started)
 - [YouTube.js default evaluator](https://github.com/LuanRT/YouTube.js/blob/204715b6acfb063dc306d8677e36fdbf09f293c5/src/platform/jsruntime/default.ts)
 - [yt-dlp EJS role and supported runtimes](https://github.com/yt-dlp/ejs)

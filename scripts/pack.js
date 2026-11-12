@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* extension.zipを作る。manifest.jsonと「main」のスクリプトを先に、アイコン・LICENSE・README.mdを
- * ルートに固定順・固定日時でまとめる。他のファイルがあるとMyspotiは拒否する。
+ * ルートに固定順・固定日時でまとめる。他のファイルがあるとOrpheonは拒否する。
  * 同じ入力からは常に同一バイトになり、sha256で比較できる。
  * Copyright (C) 2026 y-exe
  * SPDX-License-Identifier: GPL-3.0-only

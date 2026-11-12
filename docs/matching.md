@@ -1,7 +1,7 @@
 # How matching works
 
 `download-source` receives a Spotify-side track and answers with at most one M4A
-candidate. Everything happens inside Myspoti's 25 s hook budget.
+candidate. Everything happens inside Orpheon's 25 s hook budget.
 
 ## Pipeline
 
@@ -39,7 +39,7 @@ candidate. Everything happens inside Myspoti's 25 s hook budget.
 ## Gates
 
 - **Length window:** −5 s / +15 s around the track's `durationMs` — the same window
-  Myspoti's own download check uses. Applied to the search row *and* to the resolved
+  Orpheon's own download check uses. Applied to the search row *and* to the resolved
   stream's `lengthSeconds`.
 - **Version words refused:** `live`, `cover`, `remix`, `acoustic`,
   `instrumental`, `karaoke`, `slowed`, `sped up`, `nightcore`, `reverb`, `8d`, plus
@@ -90,7 +90,7 @@ Unexpected non-network errors stay fail-open, because they say nothing about rea
 
 ## The rate-limit ledger
 
-Myspoti refuses an extension's request beyond 120/minute (sliding window), and a batch
+Orpheon refuses an extension's request beyond 120/minute (sliding window), and a batch
 of downloads otherwise trips it and fails every remaining search. The extension keeps
 its own ledger: 90 requests/minute of its own, waiting in ≤ 1.8 s chunks inside the
 hook budget. When the app still answers "more than 120 requests in a minute" (its

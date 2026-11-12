@@ -2,7 +2,7 @@
 'use strict';
 /* i18n.jsonの読み込みと、main.js・manifest.jsonへの統合。
  * pack.js(パッケージ化)・harness.js(PC検証)・check-i18n.js(CI検査)の3か所で同じ
- * 統合を使うため、ここにまとめる。Myspotiはパッケージに余分なファイルを許さないため、
+ * 統合を使うため、ここにまとめる。Orpheonはパッケージに余分なファイルを許さないため、
  * i18n.jsonはリポジトリに置き、パッケージ化のときにmain.jsとmanifest.jsonへ差し込む。
  * Copyright (C) 2026 y-exe
  * SPDX-License-Identifier: GPL-3.0-only

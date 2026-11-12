@@ -1,19 +1,19 @@
 {
   "id": "net.yexe.myspoti.youtubemusic",
   "name": "YouTube Music Download Helper",
-  "version": "1.0.5",
-  "versionCode": 12,
+  "version": "1.0.6",
+  "versionCode": 13,
   "author": "y-exe",
   "description": "Matches a track's title, artist and length against YouTube Music's official catalog — searching in the song's own script — and saves its original AAC/M4A audio.",
   "homepage": "https://github.com/y-exe/myspoti-youtube-music",
-  "category": "downloads",
+  "category": "tools",
   "tags": [
     "youtube-music",
     "downloads",
     "multilingual"
   ],
-  "minAppVersion": "2.0.2-beta.4",
-  "changelog": "1.0.5: The interface, logs and status lines follow Myspoti's display language (63 languages). Rate-limit waits are answered as retryable instead of writing a batch off, matching adds an album-name ranking nudge and a score penalty for \"(Remastered …)\" notes, and the search covers fifteen more languages (Bengali, Tamil, Telugu, Persian, Urdu, …).",
+  "minAppVersion": "1.0.0-beta.1",
+  "changelog": "1.0.6: Works with Orpheon, the app formerly known as Myspoti — the extension now installs on the new Orpheon app (1.0.0-beta.1 and newer) and on Myspoti 2.x. The extension API itself is unchanged, so nothing changes for existing setups.",
   "actions": [
     {
       "name": "download.source",
