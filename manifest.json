@@ -5,7 +5,7 @@
   "versionCode": 13,
   "author": "y-exe",
   "description": "Matches a track's title, artist and length against YouTube Music's official catalog — searching in the song's own script — and saves its original AAC/M4A audio.",
-  "homepage": "https://github.com/y-exe/myspoti-youtube-music",
+  "homepage": "https://github.com/y-exe/orpheon-youtube-music",
   "category": "tools",
   "tags": [
     "youtube-music",

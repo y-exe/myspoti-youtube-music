@@ -3,7 +3,7 @@
 The PC harness replays search and matching, but only a device shows what Orpheon does
 with the answer. Two paths exist: the extension store / *Install from an address*
 (which fetches this repo), or *Install from a file* with `extension.zip` from a
-[release](https://github.com/y-exe/myspoti-youtube-music/releases/latest).
+[release](https://github.com/y-exe/orpheon-youtube-music/releases/latest).
 
 ## Verifying the release zip
 
@@ -14,13 +14,13 @@ release before installing:
 PowerShell:
 
 ```powershell
-Get-FileHash .\myspoti-youtube-music-1.0.3.zip -Algorithm SHA256
+Get-FileHash .\orpheon-youtube-music-1.0.3.zip -Algorithm SHA256
 ```
 
 macOS / Linux:
 
 ```sh
-shasum -a 256 myspoti-youtube-music-1.0.3.zip   # or: sha256sum …
+shasum -a 256 orpheon-youtube-music-1.0.3.zip   # or: sha256sum …
 ```
 
 The digest must match the one published with the release. A mismatch means the file
@@ -53,5 +53,5 @@ video resolution is caught upstream and unrelated.
    than the metadata + 15 s is refused by design (the app's own check uses the same
    window).
 
-Reports go to [Issues](https://github.com/y-exe/myspoti-youtube-music/issues) with the
+Reports go to [Issues](https://github.com/y-exe/orpheon-youtube-music/issues) with the
 console lines, the app version, and the song's title/artist/duration.

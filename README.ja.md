@@ -26,8 +26,8 @@
 ## インストール
 
 1. **ストア**: Orpheonの拡張ストアで *YouTube Music Download Helper* を探す(topic `myspoti-extension`)。
-2. **アドレスから**: 設定 → 拡張機能 → インストール → *アドレスからインストール* → `https://github.com/y-exe/myspoti-youtube-music`。
-3. **ファイルから**: [最新リリース](https://github.com/y-exe/myspoti-youtube-music/releases/latest)の `extension.zip`(または `node scripts/pack.js` でビルド)を端末に入れ、*ファイルからインストール*。
+2. **アドレスから**: 設定 → 拡張機能 → インストール → *アドレスからインストール* → `https://github.com/y-exe/orpheon-youtube-music`。
+3. **ファイルから**: [最新リリース](https://github.com/y-exe/orpheon-youtube-music/releases/latest)の `extension.zip`(または `node scripts/pack.js` でビルド)を端末に入れ、*ファイルからインストール*。
 
 Orpheon 1.0.0-beta.1 以降が必要です(Myspoti 2.0.2-beta.4 以降でも動作します)。ダウンロード・保存・暗号化はすべて本体側で行われ、拡張は音源候補を返すだけです。
 

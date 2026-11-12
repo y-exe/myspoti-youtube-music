@@ -116,7 +116,7 @@ function sameArtist(rowArtist, storeArtist) {
 }
 
 function getJson(url) {
-    return fetch(url, { headers: { 'user-agent': 'myspoti-extension-fixture/1.0 (https://github.com/y-exe/myspoti-youtube-music)' } })
+    return fetch(url, { headers: { 'user-agent': 'myspoti-extension-fixture/1.0 (https://github.com/y-exe/orpheon-youtube-music)' } })
         .then(r => r.json());
 }
 

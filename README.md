@@ -27,8 +27,8 @@ English · [日本語](README.ja.md)
 ## Install
 
 1. **Store**: open Orpheon's extension store and look for *YouTube Music Download Helper* (this repo, via the `myspoti-extension` topic).
-2. **From an address**: Settings → Extensions → Install → *Install from an address* → `https://github.com/y-exe/myspoti-youtube-music`.
-3. **From a file**: grab `extension.zip` from the [latest release](https://github.com/y-exe/myspoti-youtube-music/releases/latest) (or build it with `node scripts/pack.js`), push it to the phone, and choose *Install from a file*.
+2. **From an address**: Settings → Extensions → Install → *Install from an address* → `https://github.com/y-exe/orpheon-youtube-music`.
+3. **From a file**: grab `extension.zip` from the [latest release](https://github.com/y-exe/orpheon-youtube-music/releases/latest) (or build it with `node scripts/pack.js`), push it to the phone, and choose *Install from a file*.
 
 Requires Orpheon 1.0.0-beta.1 or newer (Myspoti 2.0.2-beta.4 and newer also work). All downloading, storage and encryption stay inside Orpheon — the extension only proposes files.
 
